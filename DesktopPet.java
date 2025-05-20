@@ -10,71 +10,39 @@ public class DesktopPet extends JWindow {
 
     // mod：0 = autowalk, 1 = floowmouse
     private int petMode = 0;
+    
+    public class MouseDetect extends MouseAdapter
+    {
+      @Override
+      public void mousePressed(MouseEvent event)
+      {
+        SwingUtilities.invokeLater(() -> {
+            PomodoroApp app = new PomodoroApp();
+            app.setLocationRelativeTo(null);
+            app.setVisible(true);
+        });
+      }
+    }
 
-    private MouseListener toggleListener;
-
+    
     public DesktopPet() {
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         setBackground(new Color(0, 0, 0, 0));
         setSize(100, 100);
-        setLocation(100, 100);
+        setLocation(screen.width - getWidth(), screen.height - getHeight());
 
         panel = new PetPanel();
         panel.setOpaque(false);
         panel.setPreferredSize(new Dimension(100, 100));
         getContentPane().add(panel);
-
-        toggleListener = new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e){
-              FollowMouseMod();
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e){
-              WalkMod();
-            }
-        };
-        panel.addMouseListener(toggleListener);
-        WalkMod();
-    }
-
-    public void WalkMod() {
-      System.out.println("Now is WalkMod");  
-      if (timer != null && timer.isRunning()) timer.stop();
-        timer = new Timer(30, e -> {
-            Point p = getLocation();
-            int x = p.x + dx;
-            int y = p.y + dy;
-            Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-            if (x < 0 || x > screen.width - getWidth()) dx = -dx;
-            if (y < 0 || y > screen.height - getHeight()) dy = -dy;
-            setLocation(x, y);
-        });
-        timer.start();
         setVisible(true);
-    }
+        MouseDetect listener = new MouseDetect();
+        panel.addMouseListener(listener);
 
-    public void FollowMouseMod() {
-        System.out.println("Now is FollowMouseMod");
-        if (timer != null && timer.isRunning()) timer.stop();
-        panel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                mouseOffset = e.getPoint();
-            }
-        });
-        panel.addMouseMotionListener(new MouseMotionAdapter() {
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                Point screenPt = e.getLocationOnScreen();
-                setLocation(screenPt.x - mouseOffset.x, screenPt.y - mouseOffset.y);
-            }
-        });
-        setVisible(true);
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(DesktopPet::new);
+      SwingUtilities.invokeLater(DesktopPet::new);
     }
 }
 
