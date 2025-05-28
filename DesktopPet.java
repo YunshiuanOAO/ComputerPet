@@ -3,14 +3,14 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
 
-public class DesktopPet extends JWindow {
-    private int dx = 2, dy = 2;
-    private Timer timer;
+public class DesktopPet extends JWindow implements ScreenUsedAlert.AlertCallback {
     private PetPanel panel;
-    private Point mouseOffset = new Point();
-
-    // mod：0 = autowalk, 1 = floowmouse
-    private int petMode = 0;
+    
+    // 螢幕使用時間計時相關
+    private ScreenUsedAlert screenAlert;
+    
+    // 番茄鐘應用程式實例 - 確保只有一個
+    private PomodoroApp pomodoroApp;
     
     public class MouseDetect extends MouseAdapter
     {
@@ -18,9 +18,22 @@ public class DesktopPet extends JWindow {
       public void mousePressed(MouseEvent event)
       {
         SwingUtilities.invokeLater(() -> {
-            PomodoroApp app = new PomodoroApp();
-            app.setLocationRelativeTo(null);
-            app.setVisible(true);
+            // 檢查是否已經有番茄鐘視窗開啟
+            if (pomodoroApp == null || !pomodoroApp.isDisplayable()) {
+                // 創建新的番茄鐘視窗
+                pomodoroApp = new PomodoroApp(DesktopPet.this);
+                
+                // 將對話框定位在寵物的左上角
+                Point petLocation = getLocation();
+                pomodoroApp.setLocation(petLocation.x - pomodoroApp.getWidth() - 100, 
+                                       petLocation.y - pomodoroApp.getHeight() - 100);
+                pomodoroApp.setVisible(true);
+            } else {
+                // 如果已經開啟，將其帶到前面並確保可見
+                pomodoroApp.toFront();
+                pomodoroApp.setVisible(true);
+                pomodoroApp.requestFocus();
+            }
         });
       }
     }
@@ -37,11 +50,8 @@ public class DesktopPet extends JWindow {
         panel.setPreferredSize(new Dimension(100, 100));
         getContentPane().add(panel);
         
-        // Add random movement
-        timer = new Timer(50, e -> movePet());
-        timer.start();
-        
         setVisible(true);
+
         MouseDetect listener = new MouseDetect();
         panel.addMouseListener(listener);
         
@@ -52,29 +62,49 @@ public class DesktopPet extends JWindow {
                 setLocation(e.getXOnScreen() - 50, e.getYOnScreen() - 50);
             }
         });
+
+        // 監聽全域焦點事件，失去焦點時半透明，獲得焦點時恢復
+        addWindowFocusListener(new WindowFocusListener() {
+            @Override
+            public void windowGainedFocus(WindowEvent e) {
+                setOpacity(1.0f);
+            }
+            
+            @Override
+            public void windowLostFocus(WindowEvent e) {
+                setOpacity(0.3f); // 設定為更明顯的半透明效果
+            }
+        });
+        
+        // 當寵物創建後立即設為半透明（因為它不會一開始就有焦點）
+        Timer initialTransparency = new Timer(100, e -> {
+            setOpacity(0.3f);
+            ((Timer)e.getSource()).stop();
+        });
+        initialTransparency.setRepeats(false);
+        initialTransparency.start();
+        
+        // 初始化螢幕使用時間監控
+        screenAlert = new ScreenUsedAlert(this);
+        screenAlert.startMonitoring();
     }
     
-    private void movePet() {
-        if (petMode == 0) { // Auto walk mode
-            Point location = getLocation();
-            Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-            
-            // Change direction if hitting screen edges
-            if (location.x <= 0 || location.x >= screen.width - getWidth()) {
-                dx = -dx;
-            }
-            if (location.y <= 0 || location.y >= screen.height - getHeight()) {
-                dy = -dy;
-            }
-            
-            // Randomly change direction occasionally
-            if (Math.random() < 0.02) {
-                dx = (Math.random() > 0.5) ? 2 : -2;
-                dy = (Math.random() > 0.5) ? 2 : -2;
-            }
-            
-            setLocation(location.x + dx, location.y + dy);
-        }
+    // 實現AlertCallback介面的方法
+    @Override
+    public void onAlert() {
+        // 開始視覺提醒（寵物閃爍）
+        panel.startAlert();
+    }
+    
+    @Override
+    public void onAlertEnd() {
+        // 結束視覺提醒
+        panel.stopAlert();
+    }
+    
+    // 獲取使用時間的方法
+    public String getCurrentUsageTime() {
+        return screenAlert.getFormattedUsageTime();
     }
 
     public static void main(String[] args) {
@@ -86,6 +116,12 @@ class PetPanel extends JPanel {
     private Color bodyColor = new Color(255, 99, 71); // Tomato color
     private int blinkState = 0;
     private Timer blinkTimer;
+    
+    // 提醒閃爍相關
+    private boolean isAlertMode = false;
+    private Timer alertTimer;
+    private Color alertColor = new Color(255, 0, 0); // 紅色提醒
+    private boolean alertFlash = false;
     
     public PetPanel() {
         setOpaque(false);
@@ -106,6 +142,28 @@ class PetPanel extends JPanel {
         });
         blinkTimer.start();
     }
+    
+    public void startAlert() {
+        isAlertMode = true;
+        if (alertTimer != null) {
+            alertTimer.stop();
+        }
+        
+        alertTimer = new Timer(500, e -> {
+            alertFlash = !alertFlash;
+            repaint();
+        });
+        alertTimer.start();
+    }
+    
+    public void stopAlert() {
+        isAlertMode = false;
+        alertFlash = false;
+        if (alertTimer != null) {
+            alertTimer.stop();
+        }
+        repaint();
+    }
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -113,8 +171,13 @@ class PetPanel extends JPanel {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Main body
-        g2d.setColor(bodyColor);
+        // Main body - 如果在提醒模式且閃爍狀態，使用紅色
+        Color currentBodyColor = bodyColor;
+        if (isAlertMode && alertFlash) {
+            currentBodyColor = alertColor;
+        }
+        
+        g2d.setColor(currentBodyColor);
         g2d.fill(new Ellipse2D.Double(10, 10, 80, 80));
         
         // Leaf
