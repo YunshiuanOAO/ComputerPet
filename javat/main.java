@@ -13,17 +13,16 @@ import java.util.ArrayList;
 
 public class main {
     private BufferedImage imgHome, imgDog, imgDogSit, imgDogCatch, imgDogCheer;
-    private ImageIcon gifDog;
-    private JFrame homeFrame; // home 視窗
-    private List<JFrame> dogFrames = new ArrayList<>();  // 存储多个dog窗口
-    private List<JLabel> dogLabels = new ArrayList<>();  // 存储多个dog标签
-    private int dogCount = 1;  // 默认一只dog
+    private ImageIcon gifDog, gifDogDance, gifDogDance2;
+    private JFrame homeFrame;
+    private List<JFrame> dogFrames = new ArrayList<>();
+    private List<JLabel> dogLabels = new ArrayList<>();
+    private int dogCount = 1;
 
-    // 狀態控制
-    private boolean isDogFollowingHome = true; // 是否跟隨 home
-    private Timer returnTimer = null;      // 返回動畫計時器
-    private Point mouseOffset = new Point(); // 保存鼠标点击位置与窗口左上角的偏移量
-    private boolean isDragging = false; // 标记是否正在拖动
+    private boolean isDogFollowingHome = true;
+    private Timer returnTimer = null;
+    private Point mouseOffset = new Point();
+    private boolean isDragging = false;
 
     private List<Timer> randomMoveTimers = new ArrayList<>();
     private List<Timer> teleportTimers = new ArrayList<>();
@@ -36,13 +35,13 @@ public class main {
     private static final double FRICTION = 0.98;
     private static final double MIN_SPEED = 3.0;
 
-    // 状态记录变量
     private List<Boolean> wasMoving = new ArrayList<>();
     private List<Boolean> wasTeleporting = new ArrayList<>();
     private List<Boolean> wasSitting = new ArrayList<>();
-    private List<Boolean> wasCheering = new ArrayList<>();  // 新增加油状态标记
+    private List<Boolean> wasCheering = new ArrayList<>();
+    private List<Boolean> wasDancing = new ArrayList<>();
+    private List<Boolean> wasDancing2 = new ArrayList<>();
 
-    // 視窗大小
     private int homeWidth = 200;
     private int homeHeight = 200;
     private int dogWidth = 200;
@@ -60,20 +59,19 @@ public class main {
             imgDogCatch = ImageIO.read(new File("dogcatch.png"));
             imgDogCheer = ImageIO.read(new File("dogcheer.png"));
             gifDog = new ImageIcon("dogmove.gif");
+            gifDogDance = new ImageIcon("dogdance.gif");
+            gifDogDance2 = new ImageIcon("dogdance2.gif");
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "找不到圖片檔案，請確認檔案路徑！");
             System.exit(1);
         }
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        // 将位置设置为右下角，留出一些边距
         int x = screenSize.width - homeWidth - 20;
         int y = screenSize.height - homeHeight - 20;
 
-        // 建立 home 視窗
         homeFrame = createHomeFrame(imgHome, x, y, homeWidth, homeHeight, true);
         
-        // 建立初始的dog
         createNewDog();
     }
 
@@ -90,9 +88,10 @@ public class main {
         wasMoving.add(false);
         wasTeleporting.add(false);
         wasSitting.add(false);
-        wasCheering.add(false);  // 初始化加油状态
+        wasCheering.add(false);
+        wasDancing.add(false);
+        wasDancing2.add(false);
 
-        // 检查是否有正在运行的计时器
         boolean hasRunningTimer = false;
         for (Timer timer : randomMoveTimers) {
             if (timer != null && timer.isRunning()) {
@@ -101,7 +100,6 @@ public class main {
             }
         }
 
-        // 如果有正在运行的计时器，新创建的狗也应该使用动画图标
         if (hasRunningTimer) {
             dogLabel.setIcon(new ImageIcon(gifDog.getImage().getScaledInstance(dogWidth, dogHeight, Image.SCALE_DEFAULT)));
         } else {
@@ -124,13 +122,14 @@ public class main {
         wasTeleporting.clear();
         wasSitting.clear();
         wasCheering.clear();
+        wasDancing.clear();
+        wasDancing2.clear();
     }
 
     private void setDogCount(int count) {
         if (count < 1) count = 1;
-        if (count > 10) count = 10;  // 限制最大数量为10只
+        if (count > 10) count = 10;
         
-        // 停止所有现有的计时器
         for (Timer timer : randomMoveTimers) {
             if (timer != null && timer.isRunning()) {
                 timer.stop();
@@ -148,12 +147,10 @@ public class main {
         }
         
         if (count > dogCount) {
-            // 增加dog
             for (int i = dogCount; i < count; i++) {
                 createNewDog();
             }
         } else if (count < dogCount) {
-            // 减少dog
             for (int i = dogCount - 1; i >= count; i--) {
                 dogFrames.get(i).dispose();
                 dogFrames.remove(i);
@@ -167,6 +164,8 @@ public class main {
                 wasTeleporting.remove(i);
                 wasSitting.remove(i);
                 wasCheering.remove(i);
+                wasDancing.remove(i);
+                wasDancing2.remove(i);
             }
         }
         dogCount = count;
@@ -192,7 +191,6 @@ public class main {
         };
         panel.setOpaque(false);
 
-        // 拖曳功能
         final Point[] mouseDownCompCoords = {null};
         panel.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
@@ -206,11 +204,9 @@ public class main {
             }
         });
 
-        // 新增 ComponentListener 監聽 home 移動
         frame.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentMoved(ComponentEvent e) {
-                // 只有跟隨模式才移動 dog
                 if (isDogFollowingHome) {
                     for (JFrame dogFrame : dogFrames) {
                         dogFrame.setLocation(frame.getX(), frame.getY());
@@ -219,18 +215,17 @@ public class main {
             }
         });
 
-        // 右鍵選單
         JPopupMenu popupMenu = new JPopupMenu();
         
-        // 创建功能1的子菜单
         JMenu menu1 = new JMenu("角色行動");
-        JMenuItem subItem1 = new JMenuItem("一起回家");
-        JMenuItem subItem2 = new JMenuItem("一起亂走");
-        JMenuItem subItem3 = new JMenuItem("一起閃現");
-        JMenuItem subItem4 = new JMenuItem("一起坐下");
-        JMenuItem subItem5 = new JMenuItem("一起加油");
+        JMenuItem subItem1 = new JMenuItem("全部回家");
+        JMenuItem subItem2 = new JMenuItem("全部亂走");
+        JMenuItem subItem3 = new JMenuItem("全部閃現");
+        JMenuItem subItem4 = new JMenuItem("全部坐下");
+        JMenuItem subItem5 = new JMenuItem("全部加油");
+        JMenuItem subItem6 = new JMenuItem("全部跳舞");
+        JMenuItem subItem7 = new JMenuItem("全部跳舞2");
         
-        // 添加1.1的点击事件
         subItem1.addActionListener(e -> {
             for (int i = 0; i < dogCount; i++) {
                 if (randomMoveTimers.get(i) != null && randomMoveTimers.get(i).isRunning()) {
@@ -249,7 +244,6 @@ public class main {
             }
         });
         
-        // 添加1.2的点击事件
         subItem2.addActionListener(e -> {
             for (int i = 0; i < dogCount; i++) {
                 if (randomMoveTimers.get(i) != null && randomMoveTimers.get(i).isRunning()) {
@@ -266,7 +260,6 @@ public class main {
             }
         });
 
-        // 添加1.3的点击事件
         subItem3.addActionListener(e -> {
             for (int i = 0; i < dogCount; i++) {
                 if (randomMoveTimers.get(i) != null && randomMoveTimers.get(i).isRunning()) {
@@ -283,7 +276,6 @@ public class main {
             }
         });
         
-        // 添加1.4的点击事件
         subItem4.addActionListener(e -> {
             for (int i = 0; i < dogCount; i++) {
                 if (randomMoveTimers.get(i) != null && randomMoveTimers.get(i).isRunning()) {
@@ -299,7 +291,6 @@ public class main {
             }
         });
         
-        // 添加1.5的点击事件
         subItem5.addActionListener(e -> {
             for (int i = 0; i < dogCount; i++) {
                 if (randomMoveTimers.get(i) != null && randomMoveTimers.get(i).isRunning()) {
@@ -311,11 +302,52 @@ public class main {
                 if (transitionTimers.get(i) != null && transitionTimers.get(i).isRunning()) {
                     transitionTimers.get(i).stop();
                 }
-                wasCheering.set(i, true);  // 设置加油状态
+                wasCheering.set(i, true);
                 wasMoving.set(i, false);
                 wasTeleporting.set(i, false);
                 wasSitting.set(i, false);
                 dogLabels.get(i).setIcon(new ImageIcon(imgDogCheer.getScaledInstance(dogWidth, dogHeight, Image.SCALE_SMOOTH)));
+            }
+        });
+        
+        subItem6.addActionListener(e -> {
+            for (int i = 0; i < dogCount; i++) {
+                if (randomMoveTimers.get(i) != null && randomMoveTimers.get(i).isRunning()) {
+                    randomMoveTimers.get(i).stop();
+                }
+                if (teleportTimers.get(i) != null && teleportTimers.get(i).isRunning()) {
+                    teleportTimers.get(i).stop();
+                }
+                if (transitionTimers.get(i) != null && transitionTimers.get(i).isRunning()) {
+                    transitionTimers.get(i).stop();
+                }
+                wasDancing.set(i, true);
+                wasMoving.set(i, false);
+                wasTeleporting.set(i, false);
+                wasSitting.set(i, false);
+                wasCheering.set(i, false);
+                dogLabels.get(i).setIcon(new ImageIcon(gifDogDance.getImage().getScaledInstance(dogWidth, dogHeight, Image.SCALE_DEFAULT)));
+            }
+        });
+        
+        subItem7.addActionListener(e -> {
+            for (int i = 0; i < dogCount; i++) {
+                if (randomMoveTimers.get(i) != null && randomMoveTimers.get(i).isRunning()) {
+                    randomMoveTimers.get(i).stop();
+                }
+                if (teleportTimers.get(i) != null && teleportTimers.get(i).isRunning()) {
+                    teleportTimers.get(i).stop();
+                }
+                if (transitionTimers.get(i) != null && transitionTimers.get(i).isRunning()) {
+                    transitionTimers.get(i).stop();
+                }
+                wasDancing2.set(i, true);
+                wasMoving.set(i, false);
+                wasTeleporting.set(i, false);
+                wasSitting.set(i, false);
+                wasCheering.set(i, false);
+                wasDancing.set(i, false);
+                dogLabels.get(i).setIcon(new ImageIcon(gifDogDance2.getImage().getScaledInstance(dogWidth, dogHeight, Image.SCALE_DEFAULT)));
             }
         });
         
@@ -324,6 +356,8 @@ public class main {
         menu1.add(subItem3);
         menu1.add(subItem4);
         menu1.add(subItem5);
+        menu1.add(subItem6);
+        menu1.add(subItem7);
         
         JMenuItem item2 = new JMenuItem("番茄鐘設定");
         JMenuItem item3 = new JMenuItem("螢幕使用時間提醒");
@@ -331,7 +365,6 @@ public class main {
         JMenuItem item5 = new JMenuItem("聊天詢問");
         JMenuItem exitItem = new JMenuItem("離開");
 
-        // 添加离开功能
         exitItem.addActionListener(e -> {
             if (randomMoveTimers.get(0) != null && randomMoveTimers.get(0).isRunning()) {
                 randomMoveTimers.get(0).stop();
@@ -342,7 +375,6 @@ public class main {
             System.exit(0);
         });
 
-        // 在菜单中添加设置dog数量的选项
         JMenuItem setDogCountItem = new JMenuItem("設定角色數量");
         setDogCountItem.addActionListener(e -> {
             String input = JOptionPane.showInputDialog(
@@ -369,7 +401,7 @@ public class main {
         popupMenu.add(item4);
         popupMenu.add(item5);
         popupMenu.addSeparator();
-        popupMenu.add(setDogCountItem);  // 添加设置数量的选项
+        popupMenu.add(setDogCountItem);
         popupMenu.add(exitItem);
 
         panel.addMouseListener(new MouseAdapter() {
@@ -401,7 +433,6 @@ public class main {
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setAlwaysOnTop(false);
 
-        // 狀態控制變數
         final Point[] mouseDownCompCoords = {null};
         final Timer[] animTimer = {null};
 
@@ -412,7 +443,6 @@ public class main {
         panel.setOpaque(false);
         panel.add(dogLabel, BorderLayout.CENTER);
 
-        // 添加右键菜单
         JPopupMenu popupMenu = new JPopupMenu();
         JMenu menu1 = new JMenu("角色行動");
         JMenuItem subItem1 = new JMenuItem("回家");
@@ -420,13 +450,12 @@ public class main {
         JMenuItem subItem3 = new JMenuItem("閃現");
         JMenuItem subItem4 = new JMenuItem("坐下");
         JMenuItem subItem5 = new JMenuItem("加油");
+        JMenuItem subItem6 = new JMenuItem("跳舞");
+        JMenuItem subItem7 = new JMenuItem("跳舞2");
         
-        // 获取当前狗的索引
         final int currentDogIndex = dogFrames.size();
         
-        // 添加1.1的点击事件（只对当前狗生效）
         subItem1.addActionListener(e -> {
-            // 停止当前狗的所有计时器
             if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
                 randomMoveTimers.get(currentDogIndex).stop();
             }
@@ -437,11 +466,12 @@ public class main {
                 transitionTimers.get(currentDogIndex).stop();
             }
 
-            // 重置所有状态标记
             wasMoving.set(currentDogIndex, false);
             wasTeleporting.set(currentDogIndex, false);
             wasSitting.set(currentDogIndex, false);
             wasCheering.set(currentDogIndex, false);
+            wasDancing.set(currentDogIndex, false);
+            wasDancing2.set(currentDogIndex, false);
 
             dogLabel.setIcon(new ImageIcon(imgDog.getScaledInstance(dogWidth, dogHeight, Image.SCALE_SMOOTH)));
             startTransitionAnimation(
@@ -452,9 +482,7 @@ public class main {
             );
         });
         
-        // 添加1.2的点击事件（只对当前狗生效）
         subItem2.addActionListener(e -> {
-            // 停止当前狗的所有计时器
             if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
                 randomMoveTimers.get(currentDogIndex).stop();
             }
@@ -469,13 +497,10 @@ public class main {
             wasTeleporting.set(currentDogIndex, false);
             wasSitting.set(currentDogIndex, false);
             dogLabel.setIcon(new ImageIcon(gifDog.getImage().getScaledInstance(dogWidth, dogHeight, Image.SCALE_DEFAULT)));
-            // 直接从当前位置开始随机移动
             startRandomMoveAnimation(currentDogIndex);
         });
 
-        // 添加1.3的点击事件（只对当前狗生效）
         subItem3.addActionListener(e -> {
-            // 停止当前狗的所有计时器
             if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
                 randomMoveTimers.get(currentDogIndex).stop();
             }
@@ -493,9 +518,7 @@ public class main {
             startRandomTeleportAnimation(currentDogIndex);
         });
         
-        // 添加1.4的点击事件（只对当前狗生效）
         subItem4.addActionListener(e -> {
-            // 停止当前狗的所有计时器
             if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
                 randomMoveTimers.get(currentDogIndex).stop();
             }
@@ -512,9 +535,7 @@ public class main {
             dogLabel.setIcon(new ImageIcon(imgDogSit.getScaledInstance(dogWidth, dogHeight, Image.SCALE_SMOOTH)));
         });
         
-        // 添加1.5的点击事件（只对当前狗生效）
         subItem5.addActionListener(e -> {
-            // 停止当前狗的所有计时器
             if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
                 randomMoveTimers.get(currentDogIndex).stop();
             }
@@ -525,11 +546,50 @@ public class main {
                 transitionTimers.get(currentDogIndex).stop();
             }
 
-            wasCheering.set(currentDogIndex, true);  // 设置加油状态
+            wasCheering.set(currentDogIndex, true);
             wasMoving.set(currentDogIndex, false);
             wasTeleporting.set(currentDogIndex, false);
             wasSitting.set(currentDogIndex, false);
             dogLabel.setIcon(new ImageIcon(imgDogCheer.getScaledInstance(dogWidth, dogHeight, Image.SCALE_SMOOTH)));
+        });
+        
+        subItem6.addActionListener(e -> {
+            if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
+                randomMoveTimers.get(currentDogIndex).stop();
+            }
+            if (teleportTimers.get(currentDogIndex) != null && teleportTimers.get(currentDogIndex).isRunning()) {
+                teleportTimers.get(currentDogIndex).stop();
+            }
+            if (transitionTimers.get(currentDogIndex) != null && transitionTimers.get(currentDogIndex).isRunning()) {
+                transitionTimers.get(currentDogIndex).stop();
+            }
+
+            wasDancing.set(currentDogIndex, true);
+            wasMoving.set(currentDogIndex, false);
+            wasTeleporting.set(currentDogIndex, false);
+            wasSitting.set(currentDogIndex, false);
+            wasCheering.set(currentDogIndex, false);
+            dogLabel.setIcon(new ImageIcon(gifDogDance.getImage().getScaledInstance(dogWidth, dogHeight, Image.SCALE_DEFAULT)));
+        });
+        
+        subItem7.addActionListener(e -> {
+            if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
+                randomMoveTimers.get(currentDogIndex).stop();
+            }
+            if (teleportTimers.get(currentDogIndex) != null && teleportTimers.get(currentDogIndex).isRunning()) {
+                teleportTimers.get(currentDogIndex).stop();
+            }
+            if (transitionTimers.get(currentDogIndex) != null && transitionTimers.get(currentDogIndex).isRunning()) {
+                transitionTimers.get(currentDogIndex).stop();
+            }
+
+            wasDancing2.set(currentDogIndex, true);
+            wasMoving.set(currentDogIndex, false);
+            wasTeleporting.set(currentDogIndex, false);
+            wasSitting.set(currentDogIndex, false);
+            wasCheering.set(currentDogIndex, false);
+            wasDancing.set(currentDogIndex, false);
+            dogLabel.setIcon(new ImageIcon(gifDogDance2.getImage().getScaledInstance(dogWidth, dogHeight, Image.SCALE_DEFAULT)));
         });
         
         menu1.add(subItem1);
@@ -537,6 +597,8 @@ public class main {
         menu1.add(subItem3);
         menu1.add(subItem4);
         menu1.add(subItem5);
+        menu1.add(subItem6);
+        menu1.add(subItem7);
         
         JMenuItem item2 = new JMenuItem("番茄鐘設定");
         JMenuItem item3 = new JMenuItem("螢幕使用時間提醒");
@@ -544,7 +606,6 @@ public class main {
         JMenuItem item5 = new JMenuItem("聊天詢問");
         JMenuItem exitItem = new JMenuItem("離開");
 
-        // 添加离开功能
         exitItem.addActionListener(e -> {
             System.exit(0);
         });
@@ -557,7 +618,6 @@ public class main {
         popupMenu.addSeparator();
         popupMenu.add(exitItem);
 
-        // 滑鼠監聽：拖曳開始
         panel.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 if (e.isPopupTrigger()) {
@@ -568,7 +628,6 @@ public class main {
                     if (animTimer[0] != null && animTimer[0].isRunning()) animTimer[0].stop();
                     frame.setAlwaysOnTop(true);
                     
-                    // 停止当前狗的所有计时器
                     if (randomMoveTimers.get(currentDogIndex) != null && randomMoveTimers.get(currentDogIndex).isRunning()) {
                         randomMoveTimers.get(currentDogIndex).stop();
                     }
@@ -579,7 +638,6 @@ public class main {
                         transitionTimers.get(currentDogIndex).stop();
                     }
                     
-                    // 开始拖动时显示被抓住的图片
                     dogLabel.setIcon(new ImageIcon(imgDogCatch.getScaledInstance(showWidth, showHeight, Image.SCALE_SMOOTH)));
                 }
             }
@@ -593,7 +651,6 @@ public class main {
                 Point now = frame.getLocation();
                 Point homePos = homeFrame.getLocation();
                 
-                // 恢复之前的状态
                 if (wasMoving.get(currentDogIndex)) {
                     dogLabel.setIcon(new ImageIcon(gifDog.getImage().getScaledInstance(showWidth, showHeight, Image.SCALE_DEFAULT)));
                     startRandomMoveAnimation(currentDogIndex);
@@ -604,6 +661,10 @@ public class main {
                     dogLabel.setIcon(new ImageIcon(imgDogSit.getScaledInstance(showWidth, showHeight, Image.SCALE_SMOOTH)));
                 } else if (wasCheering.get(currentDogIndex)) {
                     dogLabel.setIcon(new ImageIcon(imgDogCheer.getScaledInstance(showWidth, showHeight, Image.SCALE_SMOOTH)));
+                } else if (wasDancing.get(currentDogIndex)) {
+                    dogLabel.setIcon(new ImageIcon(gifDogDance.getImage().getScaledInstance(showWidth, showHeight, Image.SCALE_DEFAULT)));
+                } else if (wasDancing2.get(currentDogIndex)) {
+                    dogLabel.setIcon(new ImageIcon(gifDogDance2.getImage().getScaledInstance(showWidth, showHeight, Image.SCALE_DEFAULT)));
                 } else if (isDogFollowingHome && (now.x != homePos.x || now.y != homePos.y)) {
                     dogLabel.setIcon(new ImageIcon(imgDog.getScaledInstance(showWidth, showHeight, Image.SCALE_SMOOTH)));
                     startTransitionAnimation(
@@ -630,7 +691,7 @@ public class main {
 
         frame.setContentPane(panel);
         frame.pack();
-        frame.setLocation(homeFrame.getX(), homeFrame.getY()); // 初始位置與home同步
+        frame.setLocation(homeFrame.getX(), homeFrame.getY());
         frame.setVisible(true);
         return frame;
     }
@@ -667,13 +728,13 @@ public class main {
             randomMoveTimers.get(dogIndex).stop();
         }
 
-        // 确保状态标记正确
         wasMoving.set(dogIndex, true);
         wasTeleporting.set(dogIndex, false);
         wasSitting.set(dogIndex, false);
         wasCheering.set(dogIndex, false);
+        wasDancing.set(dogIndex, false);
+        wasDancing2.set(dogIndex, false);
 
-        // 为这只狗设置独立的初始速度
         double initialAngle = random.nextDouble() * Math.PI * 2;
         currentSpeedXs.set(dogIndex, Math.cos(initialAngle) * MAX_SPEED * 0.7);
         currentSpeedYs.set(dogIndex, Math.sin(initialAngle) * MAX_SPEED * 0.7);
@@ -682,16 +743,13 @@ public class main {
         int screenWidth = screenSize.width;
         int screenHeight = screenSize.height;
 
-        // 为这只狗创建独立的计时器
         randomMoveTimers.set(dogIndex, new Timer(16, e -> {
-            // 随机改变加速度（独立改变）
             if (random.nextDouble() < 0.15) {
                 double angle = random.nextDouble() * Math.PI * 2;
                 currentSpeedXs.set(dogIndex, currentSpeedXs.get(dogIndex) + Math.cos(angle) * ACCELERATION);
                 currentSpeedYs.set(dogIndex, currentSpeedYs.get(dogIndex) + Math.sin(angle) * ACCELERATION);
             }
 
-            // 限制最大速度
             double speed = Math.sqrt(
                 currentSpeedXs.get(dogIndex) * currentSpeedXs.get(dogIndex) + 
                 currentSpeedYs.get(dogIndex) * currentSpeedYs.get(dogIndex)
@@ -705,17 +763,14 @@ public class main {
                 currentSpeedYs.set(dogIndex, (currentSpeedYs.get(dogIndex) / speed) * MIN_SPEED);
             }
 
-            // 应用摩擦力
             currentSpeedXs.set(dogIndex, currentSpeedXs.get(dogIndex) * FRICTION);
             currentSpeedYs.set(dogIndex, currentSpeedYs.get(dogIndex) * FRICTION);
 
-            // 计算新位置
             int currentX = dogFrames.get(dogIndex).getX();
             int currentY = dogFrames.get(dogIndex).getY();
             int newX = currentX + (int)Math.round(currentSpeedXs.get(dogIndex));
             int newY = currentY + (int)Math.round(currentSpeedYs.get(dogIndex));
 
-            // 碰到边界时反弹
             if (newX <= 0 || newX >= screenWidth - dogWidth) {
                 currentSpeedXs.set(dogIndex, currentSpeedXs.get(dogIndex) * -0.9);
                 newX = Math.max(0, Math.min(newX, screenWidth - dogWidth));
@@ -736,19 +791,18 @@ public class main {
             teleportTimers.get(dogIndex).stop();
         }
 
-        // 确保状态标记正确
         wasTeleporting.set(dogIndex, true);
         wasMoving.set(dogIndex, false);
         wasSitting.set(dogIndex, false);
         wasCheering.set(dogIndex, false);
+        wasDancing.set(dogIndex, false);
+        wasDancing2.set(dogIndex, false);
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         int screenWidth = screenSize.width;
         int screenHeight = screenSize.height;
 
-        // 为这只狗创建独立的计时器
         teleportTimers.set(dogIndex, new Timer(1000, e -> {
-            // 每只狗独立闪现到随机位置
             int newX = random.nextInt(screenWidth - dogWidth);
             int newY = random.nextInt(screenHeight - dogHeight);
             dogFrames.get(dogIndex).setLocation(newX, newY);
@@ -762,7 +816,6 @@ public class main {
             transitionTimers.get(dogIndex).stop();
         }
 
-        // 如果是回家，使用静态图片
         if (isReturningHome) {
             dogLabels.get(dogIndex).setIcon(new ImageIcon(imgDog.getScaledInstance(dogWidth, dogHeight, Image.SCALE_SMOOTH)));
         }
@@ -775,7 +828,6 @@ public class main {
         final int deltaX = to.x - from.x;
         final int deltaY = to.y - from.y;
 
-        // 为这只狗创建独立的过渡动画
         transitionTimers.set(dogIndex, new Timer(1000 / fps, e -> {
             float progress = Math.min(1.0f, (System.currentTimeMillis() - startTime) / (float) duration);
             float eased = (float)(1 - Math.pow(1 - progress, 3));
