@@ -53,11 +53,11 @@ public class main {
 
     private void initialize() {
         try {
-            imgHome = ImageIO.read(new File("home.jpg"));
-            imgDog = ImageIO.read(new File("dog.png"));
-            imgDogSit = ImageIO.read(new File("dogsit.jpg"));
-            imgDogCatch = ImageIO.read(new File("dogcatch.png"));
-            imgDogCheer = ImageIO.read(new File("dogcheer.png"));
+            imgHome = ImageIO.read(new File("javat/home.jpg"));
+            imgDog = ImageIO.read(new File("javat/dog.png"));
+            imgDogSit = ImageIO.read(new File("javat/dogsit.jpg"));
+            imgDogCatch = ImageIO.read(new File("javat/dogcatch.png"));
+            imgDogCheer = ImageIO.read(new File("javat/dogcheer.png"));
             gifDog = new ImageIcon("dogmove.gif");
             gifDogDance = new ImageIcon("dogdance.gif");
             gifDogDance2 = new ImageIcon("dogdance2.gif");

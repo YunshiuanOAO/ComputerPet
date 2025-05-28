@@ -25,7 +25,7 @@ public class ScreenUsedAlert {
             usageTimer.stop();
         }
         
-        usageTimer = new Timer(1, new ActionListener() {
+        usageTimer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 usageSeconds++;
