@@ -73,11 +73,6 @@ public class Stopwatch extends JFrame {
         
         setContentPane(mainPanel);
         
-        // 如果有父寵物，設定位置跟隨
-        if (parentPet != null) {
-            startPositionTracking();
-        }
-        
         // 設定整個視窗為圓角
         SwingUtilities.invokeLater(() -> {
             setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 25, 25));
@@ -90,6 +85,12 @@ public class Stopwatch extends JFrame {
                 setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 25, 25));
             }
         });
+        
+        // 設置初始位置並開始位置跟隨
+        if (parentPet != null) {
+            setInitialPosition();
+            startPositionTracking();
+        }
     }
     
     private JPanel createTitlePanel() {
@@ -301,6 +302,81 @@ public class Stopwatch extends JFrame {
         timerLabel.setText(newDisplayText);
     }
     
+    private void setInitialPosition() {
+        if (parentPet == null) return;
+        
+        Point followingLocation;
+        boolean isVisible;
+        Dimension petSize;
+        
+        // 根據followingDogIndex決定跟隨哪個對象
+        if (followingDogIndex == -1) {
+            // 跟隨石頭圖片
+            followingLocation = parentPet.getStoneLocation();
+            isVisible = parentPet.isStoneVisible();
+            petSize = parentPet.getStoneSize();
+        } else {
+            // 跟隨特定寵物
+            followingLocation = parentPet.getPetLocation(followingDogIndex);
+            isVisible = parentPet.isPetVisible(followingDogIndex);
+            petSize = parentPet.getPetSize(followingDogIndex);
+        }
+        
+        if (isVisible && followingLocation != null) {
+            // 獲取螢幕尺寸
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            int screenWidth = screenSize.width;
+            int screenHeight = screenSize.height;
+            
+            // 計算角色的中心位置
+            int petCenterX = followingLocation.x + petSize.width / 2;
+            int petCenterY = followingLocation.y + petSize.height / 2;
+            
+            // 計算碼錶視窗的理想位置（角色中心正上方）
+            int idealX = petCenterX - getWidth() / 2;
+            int idealY = followingLocation.y - getHeight() - 10;
+            
+            // 確保位置在螢幕範圍內
+            int finalX = idealX;
+            int finalY = idealY;
+            
+            // 水平方向邊界檢查
+            if (idealX < 0) {
+                finalX = followingLocation.x + petSize.width + 10;
+                if (finalX + getWidth() > screenWidth) {
+                    finalX = screenWidth - getWidth() - 5;
+                }
+            } else if (idealX + getWidth() > screenWidth) {
+                finalX = followingLocation.x - getWidth() - 10;
+                if (finalX < 0) {
+                    finalX = 5;
+                }
+            }
+            
+            // 垂直方向邊界檢查
+            if (idealY < 0) {
+                finalY = followingLocation.y + petSize.height + 10;
+                if (finalY + getHeight() > screenHeight) {
+                    finalY = screenHeight - getHeight() - 40;
+                }
+            } else if (idealY + getHeight() > screenHeight) {
+                finalY = screenHeight - getHeight() - 40;
+            }
+            
+            // 最終邊界確保
+            finalX = Math.max(5, Math.min(finalX, screenWidth - getWidth() - 5));
+            finalY = Math.max(5, Math.min(finalY, screenHeight - getHeight() - 40));
+            
+            setLocation(finalX, finalY);
+        } else {
+            // 如果角色不可見，設置在螢幕中央
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            int x = (screenSize.width - getWidth()) / 2;
+            int y = (screenSize.height - getHeight()) / 2;
+            setLocation(x, y);
+        }
+    }
+    
     private void startPositionTracking() {
         positionTimer = new Timer();
         positionTimer.scheduleAtFixedRate(new TimerTask() {
@@ -339,33 +415,61 @@ public class Stopwatch extends JFrame {
                             int screenWidth = screenSize.width;
                             int screenHeight = screenSize.height;
                             
-                            // 計算碼錶視窗的理想位置（正上方）
-                            int idealX = followingLocation.x + 100 - getWidth() / 2; // 角色中心正上方
+                            // 獲取實際的角色尺寸
+                            Dimension petSize;
+                            if (followingDogIndex == -1) {
+                                // 跟隨石頭時，獲取石頭大小
+                                petSize = parentPet.getStoneSize();
+                            } else {
+                                // 跟隨寵物時，獲取寵物大小
+                                petSize = parentPet.getPetSize(followingDogIndex);
+                            }
+                            
+                            // 計算角色的中心位置
+                            int petCenterX = followingLocation.x + petSize.width / 2;
+                            int petCenterY = followingLocation.y + petSize.height / 2;
+                            
+                            // 計算碼錶視窗的理想位置（角色中心正上方）
+                            int idealX = petCenterX - getWidth() / 2;
                             int idealY = followingLocation.y - getHeight() - 10;
                             
                             // 確保位置在螢幕範圍內
                             int finalX = idealX;
+                            int finalY = idealY;
+                            
+                            // 水平方向邊界檢查
                             if (idealX < 0) {
-                                finalX = followingLocation.x + 200 + 10;
+                                // 如果左邊超出螢幕，移到角色右側
+                                finalX = followingLocation.x + petSize.width + 10;
                                 if (finalX + getWidth() > screenWidth) {
+                                    // 如果右側也超出，則貼螢幕右邊
                                     finalX = screenWidth - getWidth() - 5;
                                 }
                             } else if (idealX + getWidth() > screenWidth) {
-                                finalX = screenWidth - getWidth() - 5;
+                                // 如果右邊超出螢幕，移到角色左側
+                                finalX = followingLocation.x - getWidth() - 10;
+                                if (finalX < 0) {
+                                    // 如果左側也超出，則貼螢幕左邊
+                                    finalX = 5;
+                                }
                             }
                             
-                            int finalY = idealY;
+                            // 垂直方向邊界檢查
                             if (idealY < 0) {
-                                finalY = followingLocation.y + 200 + 10;
+                                // 如果上方超出螢幕，移到角色下方
+                                finalY = followingLocation.y + petSize.height + 10;
                                 if (finalY + getHeight() > screenHeight) {
+                                    // 如果下方也超出，則貼螢幕底部
                                     finalY = screenHeight - getHeight() - 40;
                                 }
                             } else if (idealY + getHeight() > screenHeight) {
+                                // 如果下方超出螢幕，貼螢幕底部
                                 finalY = screenHeight - getHeight() - 40;
                             }
                             
-                            finalX = Math.max(0, finalX);
-                            finalY = Math.max(0, finalY);
+                            // 最終邊界確保
+                            finalX = Math.max(5, Math.min(finalX, screenWidth - getWidth() - 5));
+                            finalY = Math.max(5, Math.min(finalY, screenHeight - getHeight() - 40));
                             
                             setLocation(finalX, finalY);
                         }

@@ -14,48 +14,20 @@ import java.util.Random;
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.awt.image.BufferedImage;
+import java.awt.AlphaComposite;
 
 public class DesktopPet {
     private JFrame frame;
     private JCheckBox dogCheckBox, catCheckBox, duckCheckBox, mouseCheckBox;
     private List<PetWindow> petWindows = new ArrayList<>();
-    private ScreenUsedAlert globalScreenAlert; // 全域螢幕使用時間監控
+    private ScreenUsedAlert screenUsedAlert; // 新增：螢幕使用時間監控
     
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new DesktopPet().createAndShowGUI());
-    }
-    
-    // 新增：初始化全域螢幕使用時間監控
-    private void initializeGlobalScreenAlert() {
-        globalScreenAlert = new ScreenUsedAlert(new ScreenUsedAlert.AlertCallback() {
-            @Override
-            public void onAlert() {
-                System.out.println("全域螢幕使用時間提醒：該休息了！");
-                // 可以在這裡添加額外的視覺提醒，例如讓所有寵物執行特定動作
-                for (PetWindow petWindow : petWindows) {
-                    // 讓所有寵物做加油動作提醒使用者休息
-                    petWindow.cheerUp();
-                }
-            }
-            
-            @Override
-            public void onAlertEnd() {
-                System.out.println("全域螢幕使用時間提醒結束");
-                // 讓所有寵物恢復正常狀態
-                for (PetWindow petWindow : petWindows) {
-                    petWindow.stopCheeringUp();
-                }
-            }
+        SwingUtilities.invokeLater(() -> {
+            DesktopPet desktopPet = new DesktopPet();
+            desktopPet.createAndShowGUI();
+            desktopPet.initializeScreenMonitoring(); // 啟動螢幕使用時間監控
         });
-        
-        // 自動開始監控
-        globalScreenAlert.startMonitoring();
-        System.out.println("全域螢幕使用時間監控已自動啟動");
-    }
-    
-    // 新增：獲取全域螢幕使用時間監控
-    public ScreenUsedAlert getGlobalScreenAlert() {
-        return globalScreenAlert;
     }
     
     // 新增：程式設定視窗類別
@@ -73,6 +45,7 @@ public class DesktopPet {
         private static boolean globalSoundEnabled = true; // 全域音效設定
         private static boolean globalNotificationEnabled = true; // 全域通知設定
         private static boolean globalRememberPosition = true; // 全域記憶位置設定
+        private static JFrame currentStoneMenuFunctionWindow = null; // 新增：追蹤石頭選單開啟的功能視窗
         
         public SettingsWindow() {
             createSettingsWindow();
@@ -146,7 +119,7 @@ public class DesktopPet {
             titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
             
             // 設定面板
-            JPanel settingsPanel = new JPanel(new GridLayout(3, 2, 10, 10)); // 改為 3 行
+            JPanel settingsPanel = new JPanel(new GridLayout(3, 2, 10, 10)); // 改回 3 行
             settingsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
             
             // 移動速度設定
@@ -189,11 +162,14 @@ public class DesktopPet {
                 globalPetSize = sizeSlider.getValue();
                 globalOpacity = opacitySlider.getValue();
                 
+                // 自動調整石頭大小為寵物大小的1.5倍
+                globalStoneSize = (int)(globalPetSize * 1.5);
+                
                 // 套用設定到所有現有的寵物
                 applySettingsToAllPets();
                 
                 JOptionPane.showMessageDialog(petSettingsFrame, 
-                    "設定已套用！\n移動速度: " + speedSlider.getValue() + "\n寵物大小: " + sizeSlider.getValue() + "\n透明度: " + opacitySlider.getValue() + "%", 
+                    "設定已套用！\n移動速度: " + speedSlider.getValue() + "\n寵物大小: " + sizeSlider.getValue() + "\n石頭大小: " + globalStoneSize + "\n透明度: " + opacitySlider.getValue() + "%", 
                     "設定套用", 
                     JOptionPane.INFORMATION_MESSAGE);
             });
@@ -207,6 +183,7 @@ public class DesktopPet {
                 globalMoveSpeed = 5;
                 globalPetSize = 200;
                 globalOpacity = 100;
+                globalStoneSize = 300; // 200 * 1.5 = 300
                 
                 // 套用重置的設定到所有寵物
                 applySettingsToAllPets();
@@ -243,25 +220,23 @@ public class DesktopPet {
         // 新增：更新石頭大小的方法
         private void updateStoneSize() {
             if (currentStoneFrame != null) {
-                // 重新載入石頭圖片並調整大小
                 try {
-                    File imageFile = new File("picture/home.jpg");
+                    File imageFile = new File("picture/home.png");
                     if (imageFile.exists()) {
-                        ImageIcon icon = new ImageIcon("picture/home.jpg");
-                        Image originalImage = icon.getImage();
-                        
-                        // 使用石頭專用的大小
-                        Image scaledImage = originalImage.getScaledInstance(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize, Image.SCALE_SMOOTH);
-                        
-                        // 更新石頭視窗中的圖片
+                        ImageIcon icon = new ImageIcon("picture/home.png");
+                        Image img = icon.getImage();
                         JPanel panel = (JPanel) currentStoneFrame.getContentPane();
-                        JLabel imageLabel = (JLabel) panel.getComponent(0);
-                        imageLabel.setIcon(new ImageIcon(scaledImage));
-                        
-                        // 調整視窗大小
+                        if (panel.getComponentCount() > 0) {
+                            Component component = panel.getComponent(0);
+                            if (component instanceof ScaledImageLabel) {
+                                ScaledImageLabel imageLabel = (ScaledImageLabel) component;
+                                imageLabel.setPreferredSize(new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize));
+                                imageLabel.setImage(img);
+                                imageLabel.revalidate();
+                                imageLabel.repaint();
+                            }
+                        }
                         currentStoneFrame.setSize(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize);
-                        
-                        // 調整位置，確保不會超出螢幕邊界
                         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
                         if (stoneX + SettingsWindow.globalStoneSize > screenSize.width) {
                             stoneX = screenSize.width - SettingsWindow.globalStoneSize;
@@ -270,12 +245,18 @@ public class DesktopPet {
                             stoneY = screenSize.height - SettingsWindow.globalStoneSize;
                         }
                         currentStoneFrame.setLocation(stoneX, stoneY);
-                        
+                        currentStoneFrame.revalidate();
+                        currentStoneFrame.repaint();
                         System.out.println("石頭大小已更新為: " + SettingsWindow.globalStoneSize + "x" + SettingsWindow.globalStoneSize);
+                    } else {
+                        System.out.println("找不到石頭圖片檔案");
                     }
                 } catch (Exception e) {
                     System.out.println("更新石頭大小失敗: " + e.getMessage());
+                    e.printStackTrace();
                 }
+            } else {
+                System.out.println("石頭視窗不存在，無法更新大小");
             }
         }
         
@@ -423,49 +404,33 @@ public class DesktopPet {
         // 新增：顯示 home.jpg 圖片的方法
         private void showHomeImage() {
             try {
-                // 如果已經有石頭視窗存在，先關閉它
                 if (currentStoneFrame != null && currentStoneFrame.isVisible()) {
                     currentStoneFrame.dispose();
                     currentStoneFrame = null;
                 }
-                
-                File imageFile = new File("picture/home.jpg");
+                File imageFile = new File("picture/home.png");
                 if (imageFile.exists()) {
-                    // 創建新視窗來顯示圖片
                     JFrame imageFrame = new JFrame("Home Image");
                     imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                    
-                    // 記錄當前石頭視窗
                     currentStoneFrame = imageFrame;
-                    
-                    // 添加視窗關閉監聽器
                     imageFrame.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
+                        @Override
                         public void windowClosing(java.awt.event.WindowEvent e) {
                             currentStoneFrame = null;
                         }
                     });
-                    
-                    // 移除邊框和背景
                     imageFrame.setUndecorated(true);
                     imageFrame.setBackground(new Color(0, 0, 0, 0));
                     imageFrame.setAlwaysOnTop(true);
-                    
-                    // 載入圖片
-                    ImageIcon icon = new ImageIcon("picture/home.jpg");
-                    Image originalImage = icon.getImage();
-                    
-                    // 使用石頭專用的大小
-                    Image scaledImage = originalImage.getScaledInstance(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize, Image.SCALE_SMOOTH);
-                    
-                    JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
+                    ImageIcon icon = new ImageIcon("picture/home.png");
+                    Image img = icon.getImage();
+                    ScaledImageLabel imageLabel = new ScaledImageLabel(img);
+                    imageLabel.setPreferredSize(new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize));
                     imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                    
-                    // 設定面板為透明
                     JPanel panel = new JPanel();
-        panel.setOpaque(false);
-                    panel.add(imageLabel);
-                    
+                    panel.setOpaque(false);
+                    panel.setLayout(new BorderLayout());
+                    panel.add(imageLabel, BorderLayout.CENTER);
                     // 創建右鍵選單
                     JPopupMenu homePopupMenu = new JPopupMenu();
                     
@@ -527,28 +492,28 @@ public class DesktopPet {
                     homePopupMenu.add(closeHome);
                     
                     // 添加拖動功能
-        final Point[] mouseDownCompCoords = {null};
+                    final Point[] mouseDownCompCoords = {null};
                     
-        panel.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e) {
+                    panel.addMouseListener(new MouseAdapter() {
+                        public void mousePressed(MouseEvent e) {
                             if (SwingUtilities.isRightMouseButton(e)) {
                                 // 右鍵顯示選單
                                 homePopupMenu.show(panel, e.getX(), e.getY());
                             } else if (SwingUtilities.isLeftMouseButton(e)) {
                                 // 左鍵拖動
-                mouseDownCompCoords[0] = e.getPoint();
+                                mouseDownCompCoords[0] = e.getPoint();
                             }
                         }
                         
                         public void mouseReleased(MouseEvent e) {
                             mouseDownCompCoords[0] = null;
-            }
-        });
+                        }
+                    });
                     
-        panel.addMouseMotionListener(new MouseMotionAdapter() {
-            public void mouseDragged(MouseEvent e) {
-                if (mouseDownCompCoords[0] != null) {
-                    Point currCoords = e.getLocationOnScreen();
+                    panel.addMouseMotionListener(new MouseMotionAdapter() {
+                        public void mouseDragged(MouseEvent e) {
+                            if (mouseDownCompCoords[0] != null) {
+                                Point currCoords = e.getLocationOnScreen();
                                 int newX = currCoords.x - mouseDownCompCoords[0].x;
                                 int newY = currCoords.y - mouseDownCompCoords[0].y;
                                 imageFrame.setLocation(newX, newY);
@@ -556,12 +521,13 @@ public class DesktopPet {
                                 // 更新石頭圖片的位置記錄
                                 stoneX = newX;
                                 stoneY = newY;
-                }
-            }
-        });
-
+                            }
+                        }
+                    });
+                    
                     imageFrame.add(panel);
-                    imageFrame.pack();
+                    // 移除 pack() 調用，改為手動設定視窗大小
+                    imageFrame.setSize(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize);
                     
                     // 設定在右下角顯示
                     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -577,7 +543,7 @@ public class DesktopPet {
                     
                 } else {
                     JOptionPane.showMessageDialog(settingsFrame, 
-                        "找不到 home.jpg 圖片檔案", 
+                        "找不到 home.png 圖片檔案", 
                         "錯誤", 
                         JOptionPane.ERROR_MESSAGE);
                 }
@@ -652,145 +618,172 @@ public class DesktopPet {
         
         // 新增：番茄鐘功能
         private void showTomatoTimer() {
-            SwingUtilities.invokeLater(() -> {
-                // 從石頭圖片啟動，使用 -1 表示跟隨石頭
-                PomodoroApp pomodoroApp = new PomodoroApp(DesktopPet.this, -1);
-                pomodoroApp.setVisible(true);
-                System.out.println("番茄鐘應用程式已啟動");
+            openStoneMenuFunctionWindow(() -> {
+                PomodoroApp pomodoroApp = new PomodoroApp();
+                return pomodoroApp;
             });
         }
         
         // 新增：代辦事項功能
         private void showTodoList() {
-            SwingUtilities.invokeLater(() -> {
-                // 創建簡單的代辦事項視窗
-                JFrame todoFrame = new JFrame("代辦事項");
-                todoFrame.setSize(400, 500);
-                todoFrame.setLocationRelativeTo(settingsFrame);
-                todoFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                
-                JPanel mainPanel = new JPanel(new BorderLayout());
-                
-                // 標題
-                JLabel titleLabel = new JLabel("代辦事項清單", SwingConstants.CENTER);
-                titleLabel.setFont(new Font("Dialog", Font.BOLD, 16));
-                titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
-                
-                // 代辦事項列表區域
-                DefaultListModel<String> listModel = new DefaultListModel<>();
-                listModel.addElement("📝 完成桌面寵物功能整合");
-                listModel.addElement("⏰ 設定番茄鐘工作時間");
-                listModel.addElement("💻 檢查螢幕使用時間");
-                listModel.addElement("🎯 規劃今日學習目標");
-                
-                JList<String> todoList = new JList<>(listModel);
-                todoList.setFont(new Font("Dialog", Font.PLAIN, 14));
-                todoList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-                JScrollPane scrollPane = new JScrollPane(todoList);
-                
-                // 輸入區域
-                JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
-                inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-                
-                JTextField inputField = new JTextField();
-                inputField.setFont(new Font("Dialog", Font.PLAIN, 14));
-                
-                JButton addButton = new JButton("新增");
-                JButton removeButton = new JButton("移除");
-                JButton closeButton = new JButton("關閉");
-                
-                // 按鈕事件
-                addButton.addActionListener(e -> {
-                    String newItem = inputField.getText().trim();
-                    if (!newItem.isEmpty()) {
-                        listModel.addElement("📋 " + newItem);
-                        inputField.setText("");
-                    }
-                });
-                
-                removeButton.addActionListener(e -> {
-                    int selectedIndex = todoList.getSelectedIndex();
-                    if (selectedIndex != -1) {
-                        listModel.remove(selectedIndex);
-                    }
-                });
-                
-                closeButton.addActionListener(e -> todoFrame.dispose());
-                
-                // Enter鍵新增項目
-                inputField.addActionListener(e -> addButton.doClick());
-                
-                JPanel buttonPanel = new JPanel(new FlowLayout());
-                buttonPanel.add(addButton);
-                buttonPanel.add(removeButton);
-                buttonPanel.add(closeButton);
-                
-                inputPanel.add(new JLabel("新增項目:"), BorderLayout.WEST);
-                inputPanel.add(inputField, BorderLayout.CENTER);
-                inputPanel.add(buttonPanel, BorderLayout.SOUTH);
-                
-                mainPanel.add(titleLabel, BorderLayout.NORTH);
-                mainPanel.add(scrollPane, BorderLayout.CENTER);
-                mainPanel.add(inputPanel, BorderLayout.SOUTH);
-                
-                todoFrame.add(mainPanel);
-                todoFrame.setVisible(true);
-                
-                System.out.println("代辦事項視窗已開啟");
-            });
+            JOptionPane.showMessageDialog(settingsFrame, 
+                "代辦事項功能\n\n管理您的任務清單，\n追蹤待完成的工作項目。\n\n功能即將推出！", 
+                "代辦事項", 
+                JOptionPane.INFORMATION_MESSAGE);
         }
         
         // 新增：倒數計時功能
         private void showCountdownTimer() {
-            SwingUtilities.invokeLater(() -> {
-                // 從石頭圖片啟動，使用 -1 表示跟隨石頭
-                CountdownTimer countdownTimer = new CountdownTimer(DesktopPet.this, -1);
-                countdownTimer.setVisible(true);
-                System.out.println("倒數計時器已啟動");
+            openStoneMenuFunctionWindow(() -> {
+                CountdownTimer countdownTimer = new CountdownTimer();
+                return countdownTimer;
             });
         }
         
         // 新增：碼表計時功能
         private void showStopwatch() {
-            SwingUtilities.invokeLater(() -> {
-                // 從石頭圖片啟動，使用 -1 表示跟隨石頭
-                Stopwatch stopwatch = new Stopwatch(DesktopPet.this, -1);
-                stopwatch.setVisible(true);
-                System.out.println("碼表計時器已啟動");
+            openStoneMenuFunctionWindow(() -> {
+                Stopwatch stopwatch = new Stopwatch();
+                return stopwatch;
             });
         }
         
         // 新增：螢幕使用時間提醒功能
         private void showScreenTimeReminder() {
-            SwingUtilities.invokeLater(() -> {
-                // 使用全域螢幕使用時間監控
-                if (globalScreenAlert != null) {
-                    String statusMessage;
-                    if (globalScreenAlert.isMonitoring()) {
-                        statusMessage = "螢幕使用時間監控正在運行中！\n\n" +
-                                      "系統將在您使用電腦1小時後提醒您休息。\n" +
-                                      "當前使用時間：" + globalScreenAlert.getFormattedUsageTime();
-                    } else {
-                        globalScreenAlert.startMonitoring();
-                        statusMessage = "螢幕使用時間監控已重新啟動！\n\n" +
-                                      "系統將在您使用電腦1小時後提醒您休息。";
-                    }
-                    
+            if (screenUsedAlert != null) {
+                String currentTime = screenUsedAlert.getFormattedUsageTime();
+                boolean isMonitoring = screenUsedAlert.isMonitoring();
+                
+                String message = "螢幕使用時間監控\n\n" +
+                               "目前使用時間：" + currentTime + "\n" +
+                               "監控狀態：" + (isMonitoring ? "運行中" : "已停止") + "\n" +
+                               "提醒設定：使用1小時後提醒休息\n\n" +
+                               "點擊「重置」可重新開始計時";
+                
+                int option = JOptionPane.showOptionDialog(
+                    settingsFrame,
+                    message,
+                    "螢幕使用時間提醒",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE,
+                    null,
+                    new String[]{"重置計時", "關閉"},
+                    "關閉"
+                );
+                
+                if (option == 0) { // 重置計時
+                    screenUsedAlert.resetTimer();
+                    screenUsedAlert.startMonitoring();
                     JOptionPane.showMessageDialog(settingsFrame, 
-                        statusMessage, 
-                        "螢幕使用時間提醒", 
+                        "螢幕使用時間計時器已重置並重新開始監控！", 
+                        "重置成功", 
                         JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(settingsFrame, 
-                        "螢幕使用時間監控尚未初始化。\n請重新啟動程式。", 
-                        "錯誤", 
-                        JOptionPane.ERROR_MESSAGE);
                 }
-            });
+            } else {
+                JOptionPane.showMessageDialog(settingsFrame, 
+                    "螢幕使用時間監控尚未初始化", 
+                    "錯誤", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
         
         public void show() {
             settingsFrame.setVisible(true);
+        }
+        
+        // 新增：石頭選單開啟功能視窗的統一方法
+        private void openStoneMenuFunctionWindow(java.util.function.Supplier<JFrame> windowSupplier) {
+            // 關閉現有的功能視窗
+            if (currentStoneMenuFunctionWindow != null && currentStoneMenuFunctionWindow.isDisplayable()) {
+                currentStoneMenuFunctionWindow.dispose();
+            }
+            
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // 創建新視窗
+                    currentStoneMenuFunctionWindow = windowSupplier.get();
+                    
+                    // 記錄上次視窗位置，避免不必要的更新和閃爍
+                    final Point[] lastWindowLocation = {null};
+                    
+                    // 更新視窗位置的方法
+                    Runnable updateWindowPosition = () -> {
+                        if (currentStoneMenuFunctionWindow != null && currentStoneMenuFunctionWindow.isVisible() && 
+                            currentStoneFrame != null && currentStoneFrame.isVisible()) {
+                            
+                            // 獲取石頭當前位置
+                            Point stoneLocation = currentStoneFrame.getLocation();
+                            
+                            // 計算視窗應該放置的位置（始終在石頭正上方）
+                            int idealWindowX = stoneLocation.x + (globalStoneSize - currentStoneMenuFunctionWindow.getWidth()) / 2; // 水平置中
+                            int idealWindowY = stoneLocation.y - currentStoneMenuFunctionWindow.getHeight() - 10; // 在石頭上方10像素
+                            
+                            // 確保視窗不會超出螢幕邊界
+                            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+                            int newWindowX = idealWindowX;
+                            int newWindowY = idealWindowY;
+                            
+                            // 垂直邊界檢查
+                            if (newWindowY < 0) {
+                                newWindowY = stoneLocation.y + globalStoneSize + 10; // 如果上方放不下，就放下方
+                            }
+                            
+                            // 水平邊界檢查
+                            if (newWindowX + currentStoneMenuFunctionWindow.getWidth() > screenSize.width) {
+                                newWindowX = screenSize.width - currentStoneMenuFunctionWindow.getWidth();
+                            }
+                            if (newWindowX < 0) {
+                                newWindowX = 0;
+                            }
+                            
+                            // 只有當位置變化超過閾值時才更新，避免微小變化導致閃爍
+                            Point newLocation = new Point(newWindowX, newWindowY);
+                            boolean shouldUpdate = false;
+                            
+                            if (lastWindowLocation[0] == null) {
+                                shouldUpdate = true;
+                            } else {
+                                // 計算位置變化的距離
+                                int deltaX = Math.abs(lastWindowLocation[0].x - newLocation.x);
+                                int deltaY = Math.abs(lastWindowLocation[0].y - newLocation.y);
+                                
+                                // 只有當變化超過3像素時才更新（防止微小閃爍）
+                                if (deltaX > 3 || deltaY > 3) {
+                                    shouldUpdate = true;
+                                }
+                            }
+                            
+                            if (shouldUpdate) {
+                                currentStoneMenuFunctionWindow.setLocation(newWindowX, newWindowY);
+                                lastWindowLocation[0] = newLocation;
+                            }
+                        }
+                    };
+                    
+                    // 設定初始位置
+                    updateWindowPosition.run();
+                    currentStoneMenuFunctionWindow.setVisible(true);
+                    
+                    // 啟動位置跟隨計時器，讓功能視窗跟隨石頭移動
+                    Timer stoneFollowTimer = new Timer(100, e -> updateWindowPosition.run());
+                    stoneFollowTimer.start();
+                    
+                    // 添加視窗關閉監聽器，清理引用和停止計時器
+                    currentStoneMenuFunctionWindow.addWindowListener(new java.awt.event.WindowAdapter() {
+                        @Override
+                        public void windowClosed(java.awt.event.WindowEvent e) {
+                            if (currentStoneMenuFunctionWindow == e.getWindow()) {
+                                currentStoneMenuFunctionWindow = null;
+                                stoneFollowTimer.stop(); // 停止跟隨計時器
+                            }
+                        }
+                    });
+                    
+                } catch (Exception e) {
+                    System.err.println("從石頭選單開啟功能視窗失敗: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
         }
     }
     
@@ -829,10 +822,8 @@ public class DesktopPet {
         int groundLevel;
         int moveSpeed; // 新增：個別移動速度
         JPopupMenu popupMenu;
-        
-        // 新增：追蹤當前開啟的功能視窗
-        private JFrame currentFunctionWindow = null;
-        private String currentFunctionType = null;
+        JFrame currentFunctionWindow; // 新增：追蹤當前開啟的功能視窗
+        Timer functionWindowFollowTimer; // 新增：功能視窗跟隨計時器
         
         public PetWindow(String standPath, String walkPath, String fallPath, int x, int y, String type) {
             this.standImagePath = standPath;
@@ -849,7 +840,7 @@ public class DesktopPet {
             
             // 設定地面高度
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-            this.groundLevel = screenSize.height - 200 - 40;
+            this.groundLevel = screenSize.height - SettingsWindow.globalPetSize - 40;
             
             createWindow();
             createPopupMenu();
@@ -924,9 +915,9 @@ public class DesktopPet {
                 public void mouseDragged(MouseEvent e) {
                     if (mouseDownCompCoords[0] != null && SwingUtilities.isLeftMouseButton(e) && !isPopupMenuVisible && !isTeleporting) {
                         Point currCoords = e.getLocationOnScreen();
-                        currentX = currCoords.x - mouseDownCompCoords[0].x;
-                        currentY = currCoords.y - mouseDownCompCoords[0].y;
-                        window.setLocation(currentX, currentY);
+                        int newX = currCoords.x - mouseDownCompCoords[0].x;
+                        int newY = currCoords.y - mouseDownCompCoords[0].y;
+                        setWindowPosition(newX, newY);
                         
                         // 如果被拖到地面以上，顯示跌落圖片
                         if (currentY < groundLevel && !isFalling) {
@@ -1068,10 +1059,10 @@ public class DesktopPet {
             
             // 將所有選單項目添加到主選單
             popupMenu.add(actionMenu);
-        popupMenu.add(item2);
-        popupMenu.add(item3);
-        popupMenu.add(item4);
-        popupMenu.add(item5);
+            popupMenu.add(item2);
+            popupMenu.add(item3);
+            popupMenu.add(item4);
+            popupMenu.add(item5);
             popupMenu.add(item6);
         }
         
@@ -1118,7 +1109,7 @@ public class DesktopPet {
                     }
                     if (isSitting) {
                         standUp();
-                } else {
+                    } else {
                         sit();
                     }
                     break;
@@ -1166,145 +1157,70 @@ public class DesktopPet {
                     }
                     if (isCheeringUp) {
                         stopCheeringUp();
-                } else {
+                    } else {
                         cheerUp();
                     }
                     break;
                 case "番茄鐘":
-                    SwingUtilities.invokeLater(() -> {
-                        // 找到這個寵物在列表中的索引
-                        int petIndex = petWindows.indexOf(this);
-                        PomodoroApp pomodoroApp = new PomodoroApp(DesktopPet.this, petIndex);
-                        setCurrentFunctionWindow(pomodoroApp, "番茄鐘");
-                        pomodoroApp.setVisible(true);
-                        System.out.println(petType + " 啟動番茄鐘應用程式");
+                    openFunctionWindow(() -> {
+                        PomodoroApp pomodoroApp = new PomodoroApp(DesktopPet.this, getCurrentPetIndex());
+                        return pomodoroApp;
                     });
                     break;
                 case "代辦事項":
-                    SwingUtilities.invokeLater(() -> {
-                        // 創建簡單的代辦事項視窗
-                        JFrame todoFrame = new JFrame("代辦事項");
-                        todoFrame.setSize(400, 500);
-                        todoFrame.setLocationRelativeTo(window);
-                        todoFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                        
-                        JPanel mainPanel = new JPanel(new BorderLayout());
-                        
-                        // 標題
-                        JLabel titleLabel = new JLabel("代辦事項清單", SwingConstants.CENTER);
-                        titleLabel.setFont(new Font("Dialog", Font.BOLD, 16));
-                        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
-                        
-                        // 代辦事項列表區域
-                        DefaultListModel<String> listModel = new DefaultListModel<>();
-                        listModel.addElement("📝 完成桌面寵物功能整合");
-                        listModel.addElement("⏰ 設定番茄鐘工作時間");
-                        listModel.addElement("💻 檢查螢幕使用時間");
-                        listModel.addElement("🎯 規劃今日學習目標");
-                        
-                        JList<String> todoList = new JList<>(listModel);
-                        todoList.setFont(new Font("Dialog", Font.PLAIN, 14));
-                        todoList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-                        JScrollPane scrollPane = new JScrollPane(todoList);
-                        
-                        // 輸入區域
-                        JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
-                        inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-                        
-                        JTextField inputField = new JTextField();
-                        inputField.setFont(new Font("Dialog", Font.PLAIN, 14));
-                        
-                        JButton addButton = new JButton("新增");
-                        JButton removeButton = new JButton("移除");
-                        JButton closeButton = new JButton("關閉");
-                        
-                        // 按鈕事件
-                        addButton.addActionListener(e -> {
-                            String newItem = inputField.getText().trim();
-                            if (!newItem.isEmpty()) {
-                                listModel.addElement("📋 " + newItem);
-                                inputField.setText("");
-                            }
-                        });
-                        
-                        removeButton.addActionListener(e -> {
-                            int selectedIndex = todoList.getSelectedIndex();
-                            if (selectedIndex != -1) {
-                                listModel.remove(selectedIndex);
-                            }
-                        });
-                        
-                        closeButton.addActionListener(e -> todoFrame.dispose());
-                        
-                        // Enter鍵新增項目
-                        inputField.addActionListener(e -> addButton.doClick());
-                        
-                        JPanel buttonPanel = new JPanel(new FlowLayout());
-                        buttonPanel.add(addButton);
-                        buttonPanel.add(removeButton);
-                        buttonPanel.add(closeButton);
-                        
-                        inputPanel.add(new JLabel("新增項目:"), BorderLayout.WEST);
-                        inputPanel.add(inputField, BorderLayout.CENTER);
-                        inputPanel.add(buttonPanel, BorderLayout.SOUTH);
-                        
-                        mainPanel.add(titleLabel, BorderLayout.NORTH);
-                        mainPanel.add(scrollPane, BorderLayout.CENTER);
-                        mainPanel.add(inputPanel, BorderLayout.SOUTH);
-                        
-                        todoFrame.add(mainPanel);
-                        setCurrentFunctionWindow(todoFrame, "代辦事項");
-                        todoFrame.setVisible(true);
-                        
-                        System.out.println(petType + " 開啟代辦事項視窗");
-                    });
+                    JOptionPane.showMessageDialog(window, 
+                        "代辦事項功能\n\n管理您的任務清單，\n追蹤待完成的工作項目。\n\n功能即將推出！", 
+                        "代辦事項", 
+                        JOptionPane.INFORMATION_MESSAGE);
                     break;
                 case "倒數計時":
-                    SwingUtilities.invokeLater(() -> {
-                        // 找到這個寵物在列表中的索引
-                        int petIndex = petWindows.indexOf(this);
-                        CountdownTimer countdownTimer = new CountdownTimer(DesktopPet.this, petIndex);
-                        setCurrentFunctionWindow(countdownTimer, "倒數計時");
-                        countdownTimer.setVisible(true);
-                        System.out.println(petType + " 啟動倒數計時器");
+                    openFunctionWindow(() -> {
+                        CountdownTimer countdownTimer = new CountdownTimer(DesktopPet.this, getCurrentPetIndex());
+                        return countdownTimer;
                     });
                     break;
                 case "碼錶計時":
-                    SwingUtilities.invokeLater(() -> {
-                        // 找到這個寵物在列表中的索引
-                        int petIndex = petWindows.indexOf(this);
-                        Stopwatch stopwatch = new Stopwatch(DesktopPet.this, petIndex);
-                        setCurrentFunctionWindow(stopwatch, "碼錶計時");
-                        stopwatch.setVisible(true);
-                        System.out.println(petType + " 啟動碼表計時器");
+                    openFunctionWindow(() -> {
+                        Stopwatch stopwatch = new Stopwatch(DesktopPet.this, getCurrentPetIndex());
+                        return stopwatch;
                     });
                     break;
                 case "螢幕使用時間提醒":
-                    SwingUtilities.invokeLater(() -> {
-                        // 使用全域螢幕使用時間監控
-                        if (globalScreenAlert != null) {
-                            String statusMessage;
-                            if (globalScreenAlert.isMonitoring()) {
-                                statusMessage = "螢幕使用時間監控正在運行中！\n\n" +
-                                              "系統將在您使用電腦1小時後提醒您休息。\n" +
-                                              "當前使用時間：" + globalScreenAlert.getFormattedUsageTime();
-                            } else {
-                                globalScreenAlert.startMonitoring();
-                                statusMessage = "螢幕使用時間監控已重新啟動！\n\n" +
-                                              "系統將在您使用電腦1小時後提醒您休息。";
-                            }
-                            
+                    if (screenUsedAlert != null) {
+                        String currentTime = screenUsedAlert.getFormattedUsageTime();
+                        boolean isMonitoring = screenUsedAlert.isMonitoring();
+                        
+                        String message = "螢幕使用時間監控\n\n" +
+                                       "目前使用時間：" + currentTime + "\n" +
+                                       "監控狀態：" + (isMonitoring ? "運行中" : "已停止") + "\n" +
+                                       "提醒設定：使用1小時後提醒休息\n\n" +
+                                       "點擊「重置」可重新開始計時";
+                        
+                        int option = JOptionPane.showOptionDialog(
+                            window,
+                            message,
+                            "螢幕使用時間提醒",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.INFORMATION_MESSAGE,
+                            null,
+                            new String[]{"重置計時", "關閉"},
+                            "關閉"
+                        );
+                        
+                        if (option == 0) { // 重置計時
+                            screenUsedAlert.resetTimer();
+                            screenUsedAlert.startMonitoring();
                             JOptionPane.showMessageDialog(window, 
-                                statusMessage, 
-                                "螢幕使用時間提醒", 
+                                "螢幕使用時間計時器已重置並重新開始監控！", 
+                                "重置成功", 
                                 JOptionPane.INFORMATION_MESSAGE);
-                        } else {
-                            JOptionPane.showMessageDialog(window, 
-                                "螢幕使用時間監控尚未初始化。\n請重新啟動程式。", 
-                                "錯誤", 
-                                JOptionPane.ERROR_MESSAGE);
                         }
-                    });
+                    } else {
+                        JOptionPane.showMessageDialog(window, 
+                            "螢幕使用時間監控尚未初始化", 
+                            "錯誤", 
+                            JOptionPane.ERROR_MESSAGE);
+                    }
                     break;
                 default:
                     System.out.println(petType + " 執行了: " + action);
@@ -1403,8 +1319,7 @@ public class DesktopPet {
             if (isFalling) {
                 isFalling = false;
                 fallTimer.stop();
-                currentY = groundLevel;
-                window.setLocation(currentX, currentY);
+                setWindowPosition(currentX, groundLevel);
                 
                 if (!isPopupMenuVisible) {
                     // 先載入站立圖片，然後開始走路
@@ -1425,30 +1340,38 @@ public class DesktopPet {
         }
         
         private void fall() {
-            currentY += 8; // 跌落速度
+            int newY = currentY + 8; // 跌落速度
             
-            if (currentY >= groundLevel) {
-                currentY = groundLevel;
-                window.setLocation(currentX, currentY);
+            if (newY >= groundLevel) {
+                setWindowPosition(currentX, groundLevel);
                 stopFalling();
             } else {
-                window.setLocation(currentX, currentY);
+                setWindowPosition(currentX, newY);
             }
         }
         
         // 修改：使用全域移動速度
+        // 新增：統一的位置設置方法，確保 currentX, currentY 和 window.setLocation() 同步
+        private void setWindowPosition(int x, int y) {
+            currentX = x;
+            currentY = y;
+            if (window != null) {
+                window.setLocation(currentX, currentY);
+            }
+        }
+        
         private void moveHorizontally() {
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
             
             int oldDirection = direction;  // 记录旧方向
-            currentX += direction * SettingsWindow.globalMoveSpeed; // 使用全域移動速度
+            int newX = currentX + direction * SettingsWindow.globalMoveSpeed; // 使用全域移動速度
             
             // 確保寵物不會超出螢幕邊界
-            if (currentX <= 0) {
-                currentX = 0;
+            if (newX <= 0) {
+                newX = 0;
                 direction = 1;
-            } else if (currentX >= screenSize.width - SettingsWindow.globalPetSize) {
-                currentX = screenSize.width - SettingsWindow.globalPetSize;
+            } else if (newX >= screenSize.width - SettingsWindow.globalPetSize) {
+                newX = screenSize.width - SettingsWindow.globalPetSize;
                 direction = -1;
             }
             
@@ -1457,9 +1380,8 @@ public class DesktopPet {
                 loadWalkImage();
             }
             
-            // 確保維持在地面高度
-            currentY = groundLevel;
-            window.setLocation(currentX, currentY);
+            // 確保維持在地面高度並使用統一的位置設置方法
+            setWindowPosition(newX, groundLevel);
         }
         
         private void changeDirection() {
@@ -1674,7 +1596,7 @@ public class DesktopPet {
                         ImageIcon icon = new ImageIcon(cheerImagePath);
                         Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                         petLabel.setIcon(new ImageIcon(img));
-                } else {
+                    } else {
                         System.out.println("歡呼圖片未找到: " + cheerImagePath);
                         loadStandImage();
                     }
@@ -1743,7 +1665,7 @@ public class DesktopPet {
                 if (!isPopupMenuVisible) {
                     if (currentY < groundLevel) {
                         startFalling();
-                } else {
+                    } else {
                         startWalking();
                     }
                 }
@@ -1763,8 +1685,6 @@ public class DesktopPet {
                 fallTimer.stop();
                 isFalling = false;
             }
-            // 關閉當前開啟的功能視窗
-            closeCurrentFunctionWindow();
             window.setVisible(false);
         }
         
@@ -1776,8 +1696,12 @@ public class DesktopPet {
             if (pauseTimer != null) {
                 pauseTimer.stop();
             }
-            // 關閉當前開啟的功能視窗
-            closeCurrentFunctionWindow();
+            if (functionWindowFollowTimer != null && functionWindowFollowTimer.isRunning()) {
+                functionWindowFollowTimer.stop();
+            }
+            if (currentFunctionWindow != null && currentFunctionWindow.isDisplayable()) {
+                currentFunctionWindow.dispose();
+            }
             window.dispose();
         }
         
@@ -1832,7 +1756,7 @@ public class DesktopPet {
                 int sizeChange = SettingsWindow.globalPetSize - oldSize;
                 
                 // 調整位置，讓寵物保持在螢幕內
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+                Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
                 
                 // 調整 X 位置，確保不會超出螢幕邊界
                 if (currentX + SettingsWindow.globalPetSize > screenSize.width) {
@@ -1846,12 +1770,9 @@ public class DesktopPet {
                 // 地面高度 = 螢幕高度 - 寵物大小 - 底部邊距
                 groundLevel = screenSize.height - SettingsWindow.globalPetSize - 40;
                 
-                // 調整 Y 位置，確保維持在新的地面高度
-                currentY = groundLevel;
-                
                 // 設定新的大小和位置
                 window.setSize(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize);
-                window.setLocation(currentX, currentY);
+                setWindowPosition(currentX, groundLevel);
                 
                 // 重新載入當前圖片以套用新大小
                 if (isSitting) {
@@ -1909,54 +1830,56 @@ public class DesktopPet {
             // 如果石頭位置未初始化，使用預設的右下角位置
             if (stonePosX == -1 || stonePosY == -1) {
                 Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-                stonePosX = screenSize.width - 300 - 0;
-                stonePosY = screenSize.height - 300 - 0;
+                stonePosX = screenSize.width - SettingsWindow.globalStoneSize - 0;
+                stonePosY = screenSize.height - SettingsWindow.globalStoneSize - 0;
             }
             
-            // 根據寵物類型設定不同的偏移位置
-            int offsetX = 0;
-            int offsetY = 0;
+            // 根據寵物類型設定不同的偏移位置（按石頭大小比例計算）
+            double offsetRatioX = 0.0;
+            double offsetRatioY = 0.0;
             
             switch (petType) {
                 case "dog":
-                    offsetX = 35;  // 石頭右邊 0 像素
-                    offsetY = 5;  // 石頭下方 0 像素
+                    offsetRatioX = 0.117;  // 35/300 = 0.117
+                    offsetRatioY = 0.017;  // 5/300 = 0.017
                     // 狗狗回家時旋轉340度
                     rotateDogImage();
                     break;
                 case "cat":
-                    offsetX = 95; // 石頭右邊 100 像素
-                    offsetY = 40;  // 石頭下方 50 像素
+                    offsetRatioX = 0.317;  // 95/300 = 0.317
+                    offsetRatioY = 0.133;  // 40/300 = 0.133
                     // 貓咪回家時旋轉90度
                     rotateCatImage();
                     break;
                 case "duck":
-                    offsetX = 15;  // 石頭右邊 50 像素
-                    offsetY = 50; // 石頭下方 100 像素
+                    offsetRatioX = 0.050;  // 15/300 = 0.050
+                    offsetRatioY = 0.167;  // 50/300 = 0.167
                     // 鴨子回家時旋轉300度
                     rotateDuckImage();
                     break;
                 case "mouse":
-                    offsetX = 90; // 石頭右邊 100 像素
-                    offsetY = 10; // 石頭下方 100 像素
+                    offsetRatioX = 0.300;  // 90/300 = 0.300
+                    offsetRatioY = 0.033;  // 10/300 = 0.033
                     // 老鼠回家時旋轉20度
                     rotateMouseImage();
                     break;
                 default:
-                    offsetX = 50;
-                    offsetY = 50;
+                    offsetRatioX = 0.167;  // 50/300 = 0.167
+                    offsetRatioY = 0.167;  // 50/300 = 0.167
                     break;
             }
+            
+            // 根據當前石頭大小計算實際偏移量
+            int offsetX = (int) (SettingsWindow.globalStoneSize * offsetRatioX);
+            int offsetY = (int) (SettingsWindow.globalStoneSize * offsetRatioY);
             
             // 讓寵物移動到石頭旁邊的指定位置
             int petX = stonePosX + offsetX;
             int petY = stonePosY + offsetY;
             
-            currentX = petX;
-            currentY = petY;
-            window.setLocation(currentX, currentY);
+            setWindowPosition(petX, petY);
             
-            System.out.println(petType + " 回家了，位置: (" + petX + ", " + petY + ")，石頭位置: (" + stonePosX + ", " + stonePosY + ")");
+            System.out.println(petType + " 回家了，位置: (" + petX + ", " + petY + ")，石頭位置: (" + stonePosX + ", " + stonePosY + ")，石頭大小: " + SettingsWindow.globalStoneSize + "，偏移: (" + offsetX + ", " + offsetY + ")");
         }
         
         // 新增：貓咪旋轉90度的方法
@@ -1987,7 +1910,7 @@ public class DesktopPet {
                     g2d.dispose();
                     
                     // 縮放到需要的大小並設定
-                    Image scaledImage = rotatedImage.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                    Image scaledImage = rotatedImage.getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                     petLabel.setIcon(new ImageIcon(scaledImage));
                     
                     System.out.println(petType + " 旋轉了90度");
@@ -2027,7 +1950,7 @@ public class DesktopPet {
                     g2d.dispose();
                     
                     // 縮放到需要的大小並設定
-                    Image scaledImage = rotatedImage.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                    Image scaledImage = rotatedImage.getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                     petLabel.setIcon(new ImageIcon(scaledImage));
                     
                     System.out.println(petType + " 旋轉了300度");
@@ -2067,7 +1990,7 @@ public class DesktopPet {
                     g2d.dispose();
                     
                     // 縮放到需要的大小並設定
-                    Image scaledImage = rotatedImage.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                    Image scaledImage = rotatedImage.getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                     petLabel.setIcon(new ImageIcon(scaledImage));
                     
                     System.out.println(petType + " 旋轉了20度");
@@ -2107,7 +2030,7 @@ public class DesktopPet {
                     g2d.dispose();
                     
                     // 縮放到需要的大小並設定
-                    Image scaledImage = rotatedImage.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                    Image scaledImage = rotatedImage.getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                     petLabel.setIcon(new ImageIcon(scaledImage));
                     
                     System.out.println(petType + " 旋轉了340度");
@@ -2124,91 +2047,107 @@ public class DesktopPet {
             return isHome;
         }
         
-        // 新增：獲取寵物視窗位置
-        public Point getLocation() {
-            return new Point(currentX, currentY);
+        // 新增：獲取當前寵物在列表中的索引
+        private int getCurrentPetIndex() {
+            return petWindows.indexOf(this);
         }
         
-        // 新增：獲取寵物視窗
-        public JFrame getWindow() {
-            return window;
-        }
-        
-        // 新增：關閉當前功能視窗的方法
-        private void closeCurrentFunctionWindow() {
+        // 新增：開啟功能視窗的統一方法
+        private void openFunctionWindow(java.util.function.Supplier<JFrame> windowSupplier) {
+            // 關閉現有的功能視窗和跟隨計時器
             if (currentFunctionWindow != null && currentFunctionWindow.isDisplayable()) {
-                System.out.println(petType + " 關閉當前功能視窗: " + currentFunctionType);
                 currentFunctionWindow.dispose();
             }
-            currentFunctionWindow = null;
-            currentFunctionType = null;
-        }
-        
-        // 新增：設定當前功能視窗的方法
-        private void setCurrentFunctionWindow(JFrame window, String functionType) {
-            // 先關閉舊的功能視窗
-            closeCurrentFunctionWindow();
+            if (functionWindowFollowTimer != null && functionWindowFollowTimer.isRunning()) {
+                functionWindowFollowTimer.stop();
+            }
             
-            // 設定新的功能視窗
-            currentFunctionWindow = window;
-            currentFunctionType = functionType;
-            
-            // 當視窗關閉時，清除引用
-            window.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override
-                public void windowClosed(java.awt.event.WindowEvent e) {
-                    if (currentFunctionWindow == window) {
-                        currentFunctionWindow = null;
-                        currentFunctionType = null;
-                        System.out.println(petType + " 功能視窗已關閉: " + functionType);
-                    }
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    // 創建新視窗
+                    currentFunctionWindow = windowSupplier.get();
+                    
+                    // 記錄上次視窗位置，避免不必要的更新和閃爍
+                    final Point[] lastWindowLocation = {null};
+                    
+                    // 更新視窗位置的方法
+                    Runnable updateWindowPosition = () -> {
+                        if (currentFunctionWindow != null && currentFunctionWindow.isVisible() && window.isVisible()) {
+                            Point petLocation = window.getLocation();
+                            
+                            // 計算視窗應該放置的位置（始終在寵物正上方）
+                            int idealWindowX = petLocation.x + (window.getWidth() - currentFunctionWindow.getWidth()) / 2; // 水平置中
+                            int idealWindowY = petLocation.y - currentFunctionWindow.getHeight() - 10; // 在寵物上方10像素
+                            
+                            // 確保視窗不會超出螢幕邊界
+                            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+                            int newWindowX = idealWindowX;
+                            int newWindowY = idealWindowY;
+                            
+                            // 垂直邊界檢查
+                            if (newWindowY < 0) {
+                                newWindowY = petLocation.y + window.getHeight() + 10; // 如果上方放不下，就放下方
+                            }
+                            
+                            // 水平邊界檢查
+                            if (newWindowX + currentFunctionWindow.getWidth() > screenSize.width) {
+                                newWindowX = screenSize.width - currentFunctionWindow.getWidth();
+                            }
+                            if (newWindowX < 0) {
+                                newWindowX = 0;
+                            }
+                            
+                            // 只有當位置變化超過閾值時才更新，避免微小變化導致閃爍
+                            Point newLocation = new Point(newWindowX, newWindowY);
+                            boolean shouldUpdate = false;
+                            
+                            if (lastWindowLocation[0] == null) {
+                                shouldUpdate = true;
+                            } else {
+                                // 計算位置變化的距離
+                                int deltaX = Math.abs(lastWindowLocation[0].x - newLocation.x);
+                                int deltaY = Math.abs(lastWindowLocation[0].y - newLocation.y);
+                                
+                                // 只有當變化超過3像素時才更新（防止微小閃爍）
+                                if (deltaX > 3 || deltaY > 3) {
+                                    shouldUpdate = true;
+                                }
+                            }
+                            
+                            if (shouldUpdate) {
+                                currentFunctionWindow.setLocation(newWindowX, newWindowY);
+                                lastWindowLocation[0] = newLocation;
+                            }
+                        }
+                    };
+                    
+                    // 設定初始位置
+                    updateWindowPosition.run();
+                    currentFunctionWindow.setVisible(true);
+                    
+                    // 啟動位置跟隨計時器（降低更新頻率以減少閃爍）
+                    functionWindowFollowTimer = new Timer(100, e -> updateWindowPosition.run());
+                    functionWindowFollowTimer.start();
+                    
+                    // 添加視窗關閉監聽器，清理引用和停止計時器
+                    currentFunctionWindow.addWindowListener(new java.awt.event.WindowAdapter() {
+                        @Override
+                        public void windowClosed(java.awt.event.WindowEvent e) {
+                            if (currentFunctionWindow == e.getWindow()) {
+                                currentFunctionWindow = null;
+                                if (functionWindowFollowTimer != null && functionWindowFollowTimer.isRunning()) {
+                                    functionWindowFollowTimer.stop();
+                                }
+                            }
+                        }
+                    });
+                    
+                } catch (Exception e) {
+                    System.err.println("開啟功能視窗失敗: " + e.getMessage());
+                    e.printStackTrace();
                 }
             });
-            
-            System.out.println(petType + " 開啟新功能視窗: " + functionType);
         }
-    }
-    
-    // 新增：獲取石頭圖片位置的方法
-    public Point getStoneLocation() {
-        if (SettingsWindow.currentStoneFrame != null && SettingsWindow.currentStoneFrame.isVisible()) {
-            return SettingsWindow.currentStoneFrame.getLocation();
-        }
-        return null;
-    }
-    
-    // 新增：檢查石頭圖片是否可見的方法
-    public boolean isStoneVisible() {
-        return SettingsWindow.currentStoneFrame != null && SettingsWindow.currentStoneFrame.isVisible();
-    }
-    
-    // 新增：獲取指定寵物的位置
-    public Point getPetLocation(int index) {
-        if (index >= 0 && index < petWindows.size()) {
-            return petWindows.get(index).getLocation();
-        }
-        return null;
-    }
-    
-    // 新增：獲取指定寵物的視窗
-    public JFrame getPetWindow(int index) {
-        if (index >= 0 && index < petWindows.size()) {
-            return petWindows.get(index).getWindow();
-        }
-        return null;
-    }
-    
-    // 新增：檢查指定寵物是否可見
-    public boolean isPetVisible(int index) {
-        if (index >= 0 && index < petWindows.size()) {
-            return petWindows.get(index).getWindow().isVisible();
-        }
-        return false;
-    }
-    
-    // 新增：獲取寵物數量
-    public int getPetCount() {
-        return petWindows.size();
     }
     
     private void createAndShowGUI() {
@@ -2331,9 +2270,103 @@ public class DesktopPet {
         
         frame.add(mainPanel);
         frame.setVisible(true);
+    }
+    
+    // 新增：初始化螢幕使用時間監控
+    private void initializeScreenMonitoring() {
+        screenUsedAlert = new ScreenUsedAlert(new ScreenUsedAlert.AlertCallback() {
+            @Override
+            public void onAlert() {
+                // 當提醒觸發時，讓所有寵物執行特殊動作
+                for (PetWindow petWindow : petWindows) {
+                    petWindow.cheer(); // 讓寵物歡呼提醒使用者
+                }
+                System.out.println("螢幕使用時間提醒：寵物開始歡呼");
+            }
+            
+            @Override
+            public void onAlertEnd() {
+                // 當提醒結束時，讓寵物回復正常
+                for (PetWindow petWindow : petWindows) {
+                    petWindow.stopCheering(); // 停止歡呼
+                    petWindow.startWalking(); // 開始走路
+                }
+                System.out.println("螢幕使用時間提醒結束：寵物回復正常");
+            }
+        });
         
-        // 自動啟動全域螢幕使用時間監控
-        initializeGlobalScreenAlert();
+        // 啟動監控
+        screenUsedAlert.startMonitoring();
+        System.out.println("螢幕使用時間監控已啟動");
+    }
+    
+    // 新增：根據索引獲取寵物位置的方法
+    public Point getPetLocation(int petIndex) {
+        if (petIndex >= 0 && petIndex < petWindows.size()) {
+            PetWindow petWindow = petWindows.get(petIndex);
+            if (petWindow != null && petWindow.window != null) {
+                // 使用內部的 currentX, currentY 變數而不是 window.getLocation()
+                // 這確保了位置的一致性，特別是在移動和停止時
+                return new Point(petWindow.currentX, petWindow.currentY);
+            }
+        }
+        // 如果索引無效或寵物不存在，返回螢幕中央
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        return new Point(screenSize.width / 2, screenSize.height / 2);
+    }
+    
+    // 新增：獲取石頭位置的方法
+    public Point getStoneLocation() {
+        if (SettingsWindow.currentStoneFrame != null && SettingsWindow.currentStoneFrame.isVisible()) {
+            // 使用內部的 stoneX, stoneY 變數而不是 getLocation()
+            // 這確保了位置的一致性，特別是在拖拽時
+            if (SettingsWindow.stoneX != -1 && SettingsWindow.stoneY != -1) {
+                return new Point(SettingsWindow.stoneX, SettingsWindow.stoneY);
+            } else {
+                return SettingsWindow.currentStoneFrame.getLocation();
+            }
+        }
+        // 如果石頭不存在，返回螢幕右下角的預設位置
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        return new Point(
+            screenSize.width - SettingsWindow.globalStoneSize - 0, 
+            screenSize.height - SettingsWindow.globalStoneSize - 0
+        );
+    }
+    
+    // 新增：檢查石頭是否可見的方法
+    public boolean isStoneVisible() {
+        return SettingsWindow.currentStoneFrame != null && SettingsWindow.currentStoneFrame.isVisible();
+    }
+    
+    // 新增：檢查指定寵物是否可見的方法
+    public boolean isPetVisible(int petIndex) {
+        if (petIndex >= 0 && petIndex < petWindows.size()) {
+            PetWindow petWindow = petWindows.get(petIndex);
+            return petWindow != null && petWindow.window != null && petWindow.window.isVisible();
+        }
+        return false;
+    }
+    
+    // 新增：獲取寵物的實際大小
+    public Dimension getPetSize(int petIndex) {
+        if (petIndex >= 0 && petIndex < petWindows.size()) {
+            PetWindow petWindow = petWindows.get(petIndex);
+            if (petWindow != null && petWindow.window != null) {
+                return petWindow.window.getSize();
+            }
+        }
+        // 返回預設大小
+        return new Dimension(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize);
+    }
+    
+    // 新增：獲取石頭的實際大小
+    public Dimension getStoneSize() {
+        if (SettingsWindow.currentStoneFrame != null && SettingsWindow.currentStoneFrame.isVisible()) {
+            return SettingsWindow.currentStoneFrame.getSize();
+        }
+        // 返回預設大小
+        return new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize);
     }
     
     private JPanel createPetPanel(String name, String imagePath, String description) {
@@ -2351,7 +2384,7 @@ public class DesktopPet {
                 ImageIcon icon = new ImageIcon(imagePath);
                 Image img = icon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                 imageLabel.setIcon(new ImageIcon(img));
-        } else {
+            } else {
                 imageLabel.setText("圖片未找到");
             }
         } catch (Exception e) {
@@ -2372,43 +2405,20 @@ public class DesktopPet {
         return panel;
     }
     
-    // 修改：尋找現有寵物視窗，如果存在則返回該視窗，否則返回null
-    private PetWindow findExistingPet(String petType) {
+    private boolean isPetExists(String petType) {
         for (PetWindow petWindow : petWindows) {
             if (petWindow.getPetType().equals(petType) && !petWindow.isHome()) {
-                return petWindow;
+                return true;
             }
         }
-        return null;
-    }
-    
-    // 保留原有的isPetExists方法以維持相容性
-    private boolean isPetExists(String petType) {
-        return findExistingPet(petType) != null;
+        return false;
     }
     
     private void addNewPets() {
-            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int petIndex = 0; // 重新計算索引，因為可能會有關閉的視窗
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int petIndex = petWindows.size();
         
-        // 計算當前活躍寵物數量
-        for (PetWindow petWindow : petWindows) {
-            if (!petWindow.isHome()) {
-                petIndex++;
-            }
-        }
-        
-        if (dogCheckBox.isSelected()) {
-            PetWindow existingDog = findExistingPet("dog");
-            if (existingDog != null) {
-                // 關閉現有的狗狗視窗
-                System.out.println("關閉現有的狗狗視窗");
-                existingDog.dispose();
-                petWindows.remove(existingDog);
-                petIndex--; // 減少索引，因為移除了一個視窗
-            }
-            
-            // 創建新的狗狗視窗
+        if (dogCheckBox.isSelected() && !isPetExists("dog")) {
             int x = 50 + (petIndex * 220);
             int y = screenSize.height - 200 - 40;
             PetWindow dogWindow = new PetWindow(
@@ -2419,21 +2429,10 @@ public class DesktopPet {
             );
             petWindows.add(dogWindow);
             dogWindow.show();
-            System.out.println("創建新的狗狗視窗");
             petIndex++;
         }
         
-        if (catCheckBox.isSelected()) {
-            PetWindow existingCat = findExistingPet("cat");
-            if (existingCat != null) {
-                // 關閉現有的貓咪視窗
-                System.out.println("關閉現有的貓咪視窗");
-                existingCat.dispose();
-                petWindows.remove(existingCat);
-                petIndex--;
-            }
-            
-            // 創建新的貓咪視窗
+        if (catCheckBox.isSelected() && !isPetExists("cat")) {
             int x = 50 + (petIndex * 220);
             int y = screenSize.height - 200 - 40;
             PetWindow catWindow = new PetWindow(
@@ -2444,21 +2443,10 @@ public class DesktopPet {
             );
             petWindows.add(catWindow);
             catWindow.show();
-            System.out.println("創建新的貓咪視窗");
             petIndex++;
         }
         
-        if (duckCheckBox.isSelected()) {
-            PetWindow existingDuck = findExistingPet("duck");
-            if (existingDuck != null) {
-                // 關閉現有的鴨子視窗
-                System.out.println("關閉現有的鴨子視窗");
-                existingDuck.dispose();
-                petWindows.remove(existingDuck);
-                petIndex--;
-            }
-            
-            // 創建新的鴨子視窗
+        if (duckCheckBox.isSelected() && !isPetExists("duck")) {
             int x = 50 + (petIndex * 220);
             int y = screenSize.height - 200 - 40;
             PetWindow duckWindow = new PetWindow(
@@ -2469,21 +2457,10 @@ public class DesktopPet {
             );
             petWindows.add(duckWindow);
             duckWindow.show();
-            System.out.println("創建新的鴨子視窗");
             petIndex++;
         }
         
-        if (mouseCheckBox.isSelected()) {
-            PetWindow existingMouse = findExistingPet("mouse");
-            if (existingMouse != null) {
-                // 關閉現有的老鼠視窗
-                System.out.println("關閉現有的老鼠視窗");
-                existingMouse.dispose();
-                petWindows.remove(existingMouse);
-                petIndex--;
-            }
-            
-            // 創建新的老鼠視窗
+        if (mouseCheckBox.isSelected() && !isPetExists("mouse")) {
             int x = 50 + (petIndex * 220);
             int y = screenSize.height - 200 - 40;
             PetWindow mouseWindow = new PetWindow(
@@ -2494,8 +2471,35 @@ public class DesktopPet {
             );
             petWindows.add(mouseWindow);
             mouseWindow.show();
-            System.out.println("創建新的老鼠視窗");
             petIndex++;
+        }
+    }
+
+    // 新增：可等比例縮放圖片的 JLabel
+    class ScaledImageLabel extends JLabel {
+        private Image image;
+        public ScaledImageLabel(Image image) {
+            this.image = image;
+        }
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (image != null) {
+                int w = getWidth();
+                int h = getHeight();
+                int imgW = image.getWidth(null);
+                int imgH = image.getHeight(null);
+                double scale = Math.min((double)w/imgW, (double)h/imgH);
+                int drawW = (int)(imgW * scale);
+                int drawH = (int)(imgH * scale);
+                int x = (w - drawW) / 2;
+                int y = (h - drawH) / 2;
+                g.drawImage(image, x, y, drawW, drawH, null);
+            }
+        }
+        public void setImage(Image image) {
+            this.image = image;
+            repaint();
         }
     }
 }
