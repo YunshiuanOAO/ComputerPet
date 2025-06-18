@@ -30,21 +30,21 @@ public class ScreenUsedAlert {
             public void actionPerformed(ActionEvent e) {
                 usageSeconds++;
                 
-                // 每10分鐘顯示一次當前使用時間
-                if (usageSeconds % 600 == 0) {
-                    int minutes = usageSeconds / 60;
-                    System.out.println("螢幕使用時間: " + minutes + " 分鐘");
+                // 每10秒顯示一次當前使用時間（用於調試）
+                if (usageSeconds % 10 == 0) {
+                    System.out.println("全域螢幕使用時間: " + usageSeconds + " 秒");
                 }
                 
-                // 超過1小時（3600秒）提醒使用者
+                // 1小時（3600秒）後提醒使用者
                 if (!hasReminded && usageSeconds >= 3600) {
                     hasReminded = true;
+                    System.out.println("達到1小時！顯示休息提醒視窗...");
                     showAlert();
                 }
             }
         });
         usageTimer.start();
-        System.out.println("螢幕使用時間監控已啟動");
+        System.out.println("螢幕使用時間監控已啟動（1小時後提醒休息）");
     }
     
     // 停止計時
@@ -82,6 +82,8 @@ public class ScreenUsedAlert {
                     public void onReset() {
                         resetTimer();
                         currentAlertWindow = null; // 清除引用
+                        // 重新開始監控
+                        startMonitoring();
                         // 停止視覺提醒
                         if (callback != null) {
                             callback.onAlertEnd();
@@ -90,22 +92,12 @@ public class ScreenUsedAlert {
                     
                     @Override
                     public void onSnooze(int minutes) {
-                        scheduleNextReminder(minutes * 60); // 轉換為秒
-                        currentAlertWindow = null; // 清除引用
-                        // 停止視覺提醒
-                        if (callback != null) {
-                            callback.onAlertEnd();
-                        }
+                        // 不再使用此方法
                     }
                     
                     @Override
                     public void onDismiss() {
-                        hasReminded = true; // 不再提醒
-                        currentAlertWindow = null; // 清除引用
-                        // 停止視覺提醒
-                        if (callback != null) {
-                            callback.onAlertEnd();
-                        }
+                        // 不再使用此方法
                     }
                 }
             );
@@ -113,24 +105,6 @@ public class ScreenUsedAlert {
             // 顯示提醒視窗
             currentAlertWindow.showWindow();
         });
-    }
-    
-    // 排程下次提醒
-    private void scheduleNextReminder(int seconds) {
-        hasReminded = true; // 暫時標記為已提醒，防止在等待期間重複提醒
-        
-        Timer reminderTimer = new Timer(seconds * 1000, e -> {
-            hasReminded = false; // 重新啟用提醒
-            // 檢查是否仍然超過1小時，如果是則顯示提醒
-            if (usageSeconds >= 3600) {
-                showAlert();
-            }
-            ((Timer)e.getSource()).stop();
-        });
-        reminderTimer.setRepeats(false);
-        reminderTimer.start();
-        
-        System.out.println("將在 " + (seconds / 60) + " 分鐘後再次提醒");
     }
     
     // 獲取當前使用分鐘數
