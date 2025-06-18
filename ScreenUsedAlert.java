@@ -9,6 +9,9 @@ public class ScreenUsedAlert {
     private AlertCallback callback;
     private InteractiveAlertWindow currentAlertWindow = null; // 防止多視窗
     
+    // 正常模式：1小時後提醒休息
+    private static final int ALERT_THRESHOLD_SECONDS = 3600; // 1小時
+    
     // 回調介面，用於通知桌面寵物進行視覺提醒
     public interface AlertCallback {
         void onAlert();
@@ -36,7 +39,7 @@ public class ScreenUsedAlert {
                 }
                 
                 // 1小時（3600秒）後提醒使用者
-                if (!hasReminded && usageSeconds >= 3600) {
+                if (!hasReminded && usageSeconds >= ALERT_THRESHOLD_SECONDS) {
                     hasReminded = true;
                     System.out.println("達到1小時！顯示休息提醒視窗...");
                     showAlert();
