@@ -65,9 +65,9 @@ public class PetWindow {
         this.walkImagePath = PathTool.patchPicturePath(walkPath);
         this.fallImagePath = PathTool.patchPicturePath(fallPath);
         this.sitImagePath = PathTool.patchPicturePath(standPath.replace("_stand.png", "_sit.png"));
-        this.lieImagePath = standPath.replace("_stand.png", "_lie.png");
-        this.cheerImagePath = "picture/" + type + "_cheer.png";
-        this.cheerUpImagePath = "picture/" + type + "_cheerup.png";
+        this.lieImagePath = PathTool.patchPicturePath(standPath.replace("_stand.png", "_lie.png"));
+        this.cheerImagePath = PathTool.patchPicturePath("picture/" + type + "_cheer.png");
+        this.cheerUpImagePath = PathTool.patchPicturePath("picture/" + type + "_cheerup.png");
         this.currentX = x;
         this.currentY = y;
         this.petType = type;
