@@ -12,6 +12,7 @@ import javax.swing.*;
 import pomodoro.CountdownTimer;
 import pomodoro.PomodoroApp;
 import pomodoro.Stopwatch;
+import utils.PathTool;
 
 
 public class SettingsWindow {
@@ -209,9 +210,10 @@ public class SettingsWindow {
     private void updateStoneSize() {
         if (currentStoneFrame != null) {
             try {
-                File imageFile = new File("picture/home.png");
+                String imagePath = PathTool.patchPicturePath("picture/home.png");
+                File imageFile = new File(imagePath);
                 if (imageFile.exists()) {
-                    ImageIcon icon = new ImageIcon("picture/home.png");
+                    ImageIcon icon = new ImageIcon(imagePath);
                     Image img = icon.getImage();
                     JPanel panel = (JPanel) currentStoneFrame.getContentPane();
                     if (panel.getComponentCount() > 0) {
@@ -396,7 +398,8 @@ public class SettingsWindow {
                 currentStoneFrame.dispose();
                 currentStoneFrame = null;
             }
-            File imageFile = new File("picture/home.png");
+            String imagePath = PathTool.patchPicturePath("picture/home.png");
+            File imageFile = new File(imagePath);
             if (imageFile.exists()) {
                 JFrame imageFrame = new JFrame("Home Image");
                 imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -410,7 +413,7 @@ public class SettingsWindow {
                 imageFrame.setUndecorated(true);
                 imageFrame.setBackground(new Color(0, 0, 0, 0));
                 imageFrame.setAlwaysOnTop(true);
-                ImageIcon icon = new ImageIcon("picture/home.png");
+                ImageIcon icon = new ImageIcon(imagePath);
                 Image img = icon.getImage();
                 ScaledImageLabel imageLabel = new ScaledImageLabel(img);
                 imageLabel.setPreferredSize(new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize));
