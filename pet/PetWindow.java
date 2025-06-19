@@ -1,4 +1,4 @@
-package window;
+package pet;
 
 // 寵物視窗類別
 
@@ -11,7 +11,7 @@ import java.util.Random;
 import javax.swing.*;
 import javax.swing.event.*;
 
-import pet.DesktopPet;
+import utils.PathTool;
 import pomodoro.CountdownTimer;
 import pomodoro.PomodoroApp;
 import pomodoro.Stopwatch;
@@ -60,12 +60,11 @@ public class PetWindow {
     
     public PetWindow(DesktopPet desktopPet, String standPath, String walkPath, String fallPath, int x, int y, String type) {
 
-        // FIXME: patch picture path
         this.desktopPet = desktopPet;
-        this.standImagePath = standPath;
-        this.walkImagePath = walkPath;
-        this.fallImagePath = fallPath;
-        this.sitImagePath = standPath.replace("_stand.png", "_sit.png");
+        this.standImagePath = PathTool.patchPicturePath(standPath);
+        this.walkImagePath = PathTool.patchPicturePath(walkPath);
+        this.fallImagePath = PathTool.patchPicturePath(fallPath);
+        this.sitImagePath = PathTool.patchPicturePath(standPath.replace("_stand.png", "_sit.png"));
         this.lieImagePath = standPath.replace("_stand.png", "_lie.png");
         this.cheerImagePath = "picture/" + type + "_cheer.png";
         this.cheerUpImagePath = "picture/" + type + "_cheerup.png";
@@ -734,7 +733,7 @@ public class PetWindow {
     }
 
     // 新增：坐下方法
-    void sit() {
+    public void sit() {
         if (!isSitting && !isPopupMenuVisible) {
             // 停止所有動作
             stopAllActions();
@@ -783,7 +782,7 @@ public class PetWindow {
     }
 
     // 新增：躺下方法
-    void lie() {
+    public void lie() {
         if (!isLying && !isPopupMenuVisible) {
             // 停止所有動作
             stopAllActions();
@@ -799,7 +798,7 @@ public class PetWindow {
     }
 
     // 新增：起身方法
-    void getUp() {
+    public void getUp() {
         if (isLying && !isPopupMenuVisible) {
             // 停止所有動作
             stopAllActions();
@@ -846,7 +845,7 @@ public class PetWindow {
     }
 
     // 修改：加油方法
-    void cheerUp() {
+    public void cheerUp() {
         if (!isCheeringUp && !isPopupMenuVisible) {
             // 停止所有動作
             stopAllActions();

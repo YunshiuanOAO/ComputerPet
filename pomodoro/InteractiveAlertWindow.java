@@ -1,4 +1,4 @@
-package window;
+package pomodoro;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;

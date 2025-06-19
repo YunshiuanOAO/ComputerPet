@@ -1,9 +1,8 @@
 package pet;
 import javax.swing.*;
 
+import utils.PathTool;
 import pomodoro.ScreenUsedAlert;
-import window.PetWindow;
-import window.SettingsWindow;
 
 import java.awt.*;
 import java.io.File;
@@ -235,8 +234,9 @@ public class DesktopPet {
         return new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize);
     }
     
-    // FIXME: patch picture path
+
     private JPanel createPetPanel(String name, String imagePath, String description) {
+        imagePath = PathTool.patchPicturePath(imagePath);
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder(name));
         
@@ -339,34 +339,6 @@ public class DesktopPet {
             petWindows.add(mouseWindow);
             mouseWindow.show();
             petIndex++;
-        }
-    }
-
-    // 新增：可等比例縮放圖片的 JLabel
-    public class ScaledImageLabel extends JLabel {
-        private Image image;
-        public ScaledImageLabel(Image image) {
-            this.image = image;
-        }
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (image != null) {
-                int w = getWidth();
-                int h = getHeight();
-                int imgW = image.getWidth(null);
-                int imgH = image.getHeight(null);
-                double scale = Math.min((double)w/imgW, (double)h/imgH);
-                int drawW = (int)(imgW * scale);
-                int drawH = (int)(imgH * scale);
-                int x = (w - drawW) / 2;
-                int y = (h - drawH) / 2;
-                g.drawImage(image, x, y, drawW, drawH, null);
-            }
-        }
-        public void setImage(Image image) {
-            this.image = image;
-            repaint();
         }
     }
 }
