@@ -1,4 +1,9 @@
+package pomodoro;
 import javax.swing.*;
+
+import window.InteractiveAlertWindow;
+import window.InteractiveAlertWindow.AlertActionCallback;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
