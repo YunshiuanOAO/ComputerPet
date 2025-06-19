@@ -12,6 +12,7 @@ import javax.swing.*;
 import pomodoro.CountdownTimer;
 import pomodoro.PomodoroApp;
 import pomodoro.Stopwatch;
+import taskmanager.TaskManagerApp;
 import utils.PathTool;
 
 
@@ -617,10 +618,11 @@ public class SettingsWindow {
     
     // 新增：代辦事項功能
     private void showTodoList() {
-        JOptionPane.showMessageDialog(settingsFrame, 
-            "代辦事項功能\n\n管理您的任務清單，\n追蹤待完成的工作項目。\n\n功能即將推出！", 
-            "代辦事項", 
-            JOptionPane.INFORMATION_MESSAGE);
+        // TODO: 代辦事項功能
+        openStoneMenuFunctionWindow(() -> {
+            TaskManagerApp taskManagerApp = new TaskManagerApp();
+            return taskManagerApp;
+        });
     }
     
     // 新增：倒數計時功能

@@ -15,6 +15,7 @@ import utils.PathTool;
 import pomodoro.CountdownTimer;
 import pomodoro.PomodoroApp;
 import pomodoro.Stopwatch;
+import taskmanager.TaskManagerApp;
 
 public class PetWindow {
     /**
@@ -403,10 +404,10 @@ public class PetWindow {
                 });
                 break;
             case "代辦事項":
-                JOptionPane.showMessageDialog(window, 
-                    "代辦事項功能\n\n管理您的任務清單，\n追蹤待完成的工作項目。\n\n功能即將推出！", 
-                    "代辦事項", 
-                    JOptionPane.INFORMATION_MESSAGE);
+                openFunctionWindow(() -> {
+                    TaskManagerApp taskManagerApp = new TaskManagerApp(this.desktopPet, getCurrentPetIndex());
+                    return taskManagerApp;
+                });
                 break;
             case "倒數計時":
                 openFunctionWindow(() -> {
