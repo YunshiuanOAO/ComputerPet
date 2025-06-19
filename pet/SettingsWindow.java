@@ -1,4 +1,4 @@
-package window;
+package pet;
 
 // 新增：程式設定視窗類別
 
@@ -9,8 +9,6 @@ import java.util.Random;
 
 import javax.swing.*;
 
-import pet.DesktopPet;
-import pet.DesktopPet.ScaledImageLabel;
 import pomodoro.CountdownTimer;
 import pomodoro.PomodoroApp;
 import pomodoro.Stopwatch;
@@ -27,10 +25,10 @@ public class SettingsWindow {
     public static JFrame currentStoneFrame = null; // 記錄當前石頭視窗
     
     // 新增：全域設定變數
-    static int globalMoveSpeed = 5; // 全域移動速度
+    public static int globalMoveSpeed = 5; // 全域移動速度
     public static int globalPetSize = 200; // 全域寵物大小
     public static int globalStoneSize = 300; // 石頭大小
-    static int globalOpacity = 100; // 全域透明度
+    public static int globalOpacity = 100; // 全域透明度
     public static boolean globalSoundEnabled = true; // 全域音效設定
     public static boolean globalNotificationEnabled = true; // 全域通知設定
     public static boolean globalRememberPosition = true; // 全域記憶位置設定
@@ -414,7 +412,7 @@ public class SettingsWindow {
                 imageFrame.setAlwaysOnTop(true);
                 ImageIcon icon = new ImageIcon("picture/home.png");
                 Image img = icon.getImage();
-                ScaledImageLabel imageLabel = this.desktopPet.new ScaledImageLabel(img);
+                ScaledImageLabel imageLabel = new ScaledImageLabel(img);
                 imageLabel.setPreferredSize(new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize));
                 imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
                 JPanel panel = new JPanel();
