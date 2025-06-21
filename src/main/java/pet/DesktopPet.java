@@ -4,6 +4,7 @@ import java.net.URL;
 
 import utils.PathTool;
 import pomodoro.ScreenUsedAlert;
+import taskmanager.TaskManagerApp;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -14,12 +15,43 @@ public class DesktopPet {
     private JCheckBox dogCheckBox, catCheckBox, duckCheckBox, mouseCheckBox;
     public List<PetWindow> petWindows = new ArrayList<>();
     public ScreenUsedAlert screenUsedAlert; // 新增：螢幕使用時間監控
+    private List<TaskManagerApp> taskManagerApps = new ArrayList<>(); // 追蹤所有TaskManagerApp實例
+    
+    public DesktopPet() {
+        // 添加JVM關閉鉤子，確保SessionFlow進程在程序結束時被終止
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("程序正在關閉，清理SessionFlow進程...");
+            cleanupTaskManagers();
+        }));
+    }
     
     public void createAndShowGUI() {
         frame = new JFrame("角色選擇");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.setSize(600, 500);
         frame.setLocationRelativeTo(null);
+        
+        // 添加窗口關閉事件監聽器，確保正確清理資源
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                // 先清理SessionFlow進程
+                cleanupTaskManagers();
+                
+                // 清理所有寵物視窗
+                for (PetWindow petWindow : petWindows) {
+                    petWindow.dispose();
+                }
+                
+                // 停止螢幕監控
+                if (screenUsedAlert != null) {
+                    screenUsedAlert.stopMonitoring();
+                }
+                
+                // 終止整個程式
+                System.exit(0);
+            }
+        });
         
         // 主面板
         JPanel mainPanel = new JPanel(new BorderLayout());
@@ -114,10 +146,19 @@ public class DesktopPet {
         
         // 修改離開選擇按鈕功能：終止整個程式
         exitButton.addActionListener(e -> {
+            // 先清理SessionFlow進程
+            cleanupTaskManagers();
+            
             // 清理所有寵物視窗
             for (PetWindow petWindow : petWindows) {
                 petWindow.dispose();
             }
+            
+            // 停止螢幕監控
+            if (screenUsedAlert != null) {
+                screenUsedAlert.stopMonitoring();
+            }
+            
             // 終止整個程式
             System.exit(0);
         });
@@ -228,12 +269,85 @@ public class DesktopPet {
     // 新增：獲取石頭的實際大小
     public Dimension getStoneSize() {
         if (SettingsWindow.currentStoneFrame != null && SettingsWindow.currentStoneFrame.isVisible()) {
-            return SettingsWindow.currentStoneFrame.getSize();
+            return new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize);
         }
-        // 返回預設大小
+        // 預設大小
         return new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize);
     }
     
+    // 新增：添加TaskManagerApp到追蹤列表
+    public void addTaskManagerApp(TaskManagerApp taskManagerApp) {
+        if (taskManagerApp != null && !taskManagerApps.contains(taskManagerApp)) {
+            taskManagerApps.add(taskManagerApp);
+        }
+    }
+    
+    // 新增：移除TaskManagerApp從追蹤列表
+    public void removeTaskManagerApp(TaskManagerApp taskManagerApp) {
+        taskManagerApps.remove(taskManagerApp);
+    }
+    
+    // 新增：清理所有TaskManagerApp實例，確保SessionFlow進程被正確終止
+    private void cleanupTaskManagers() {
+        for (TaskManagerApp taskManagerApp : taskManagerApps) {
+            try {
+                taskManagerApp.dispose();
+                System.out.println("已清理TaskManagerApp實例");
+            } catch (Exception e) {
+                System.err.println("清理TaskManagerApp時出錯: " + e.getMessage());
+            }
+        }
+        taskManagerApps.clear();
+        
+        // 額外保障：使用系統命令確保所有SessionFlow進程都被終止
+        try {
+            System.out.println("執行額外的SessionFlow進程清理...");
+            killAllSessionFlowProcesses();
+        } catch (Exception e) {
+            System.err.println("額外的SessionFlow進程清理失敗: " + e.getMessage());
+        }
+    }
+    
+    // 新增：使用系統命令強制終止所有SessionFlow進程
+    private void killAllSessionFlowProcesses() throws Exception {
+        String os = System.getProperty("os.name").toLowerCase();
+        ProcessBuilder pb;
+        
+        if (os.contains("win")) {
+            // Windows系統 - 查找並終止所有運行sessionflow.jar的java進程
+            pb = new ProcessBuilder("cmd", "/c", 
+                "wmic process where \"commandline like '%sessionflow.jar%'\" delete");
+        } else if (os.contains("mac") || os.contains("darwin")) {
+            // macOS系統
+            pb = new ProcessBuilder("sh", "-c", 
+                "pkill -f 'java.*sessionflow.jar' && echo 'SessionFlow processes terminated' || echo 'No SessionFlow processes found'");
+        } else {
+            // Linux系統
+            pb = new ProcessBuilder("sh", "-c", 
+                "pkill -f 'java.*sessionflow.jar' && echo 'SessionFlow processes terminated' || echo 'No SessionFlow processes found'");
+        }
+        
+        Process killProcess = pb.start();
+        
+        // 讀取命令輸出
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(killProcess.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("清理命令輸出: " + line);
+            }
+        }
+        
+        boolean finished = killProcess.waitFor(10, java.util.concurrent.TimeUnit.SECONDS);
+        
+        if (finished) {
+            int exitCode = killProcess.exitValue();
+            System.out.println("SessionFlow進程清理命令完成，退出碼: " + exitCode);
+        } else {
+            System.out.println("SessionFlow進程清理命令超時");
+            killProcess.destroyForcibly();
+        }
+    }
 
     private JPanel createPetPanel(String name, String imagePath, String description) {
         imagePath = PathTool.patchPicturePath(imagePath);

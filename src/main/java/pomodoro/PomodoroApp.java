@@ -60,7 +60,7 @@ public class PomodoroApp extends JFrame {
         setBackground(new Color(0, 0, 0, 0)); // 設定完全透明的背景
         
         // 設定現代化的主要面板
-        ModernSpeechBubblePanel mainPanel = new ModernSpeechBubblePanel();
+        ModernPomodoroPanel mainPanel = new ModernPomodoroPanel();
         mainPanel.setLayout(new BorderLayout(10, 10));
         
         // 標題面板
@@ -568,36 +568,25 @@ public class PomodoroApp extends JFrame {
             int idealX = petCenterX - getWidth() / 2;
             int idealY = followingLocation.y - getHeight() - 10;
             
-            // 確保位置在螢幕範圍內
+            // 確保視窗不會超出螢幕邊界（簡單的邊界貼合）
             int finalX = idealX;
             int finalY = idealY;
             
             // 水平方向邊界檢查
-            if (idealX < 0) {
-                finalX = followingLocation.x + petSize.width + 10;
-                if (finalX + getWidth() > screenWidth) {
-                    finalX = screenWidth - getWidth() - 5;
-                }
-            } else if (idealX + getWidth() > screenWidth) {
-                finalX = followingLocation.x - getWidth() - 10;
-                if (finalX < 0) {
-                    finalX = 5;
-                }
+            if (finalX + getWidth() > screenWidth) {
+                finalX = screenWidth - getWidth(); // 右邊界對齊
+            }
+            if (finalX < 0) {
+                finalX = 0; // 左邊界對齊
             }
             
             // 垂直方向邊界檢查
-            if (idealY < 0) {
-                finalY = followingLocation.y + petSize.height + 10;
-                if (finalY + getHeight() > screenHeight) {
-                    finalY = screenHeight - getHeight() - 40;
-                }
-            } else if (idealY + getHeight() > screenHeight) {
-                finalY = screenHeight - getHeight() - 40;
+            if (finalY < 0) {
+                finalY = followingLocation.y + petSize.height + 10; // 如果上方空間不足，放到下方
             }
-            
-            // 最終邊界確保
-            finalX = Math.max(5, Math.min(finalX, screenWidth - getWidth() - 5));
-            finalY = Math.max(5, Math.min(finalY, screenHeight - getHeight() - 40));
+            if (finalY + getHeight() > screenHeight) {
+                finalY = screenHeight - getHeight(); // 底部邊界對齊
+            }
             
             setLocation(finalX, finalY);
         } else {
@@ -665,43 +654,25 @@ public class PomodoroApp extends JFrame {
                             int idealX = petCenterX - getWidth() / 2;
                             int idealY = followingLocation.y - getHeight() - 10;
                             
-                            // 確保位置在螢幕範圍內
+                            // 確保視窗不會超出螢幕邊界（簡單的邊界貼合）
                             int finalX = idealX;
                             int finalY = idealY;
                             
                             // 水平方向邊界檢查
-                            if (idealX < 0) {
-                                // 如果左邊超出螢幕，移到角色右側
-                                finalX = followingLocation.x + petSize.width + 10;
-                                if (finalX + getWidth() > screenWidth) {
-                                    // 如果右側也超出，則貼螢幕右邊
-                                    finalX = screenWidth - getWidth() - 5;
-                                }
-                            } else if (idealX + getWidth() > screenWidth) {
-                                // 如果右邊超出螢幕，移到角色左側
-                                finalX = followingLocation.x - getWidth() - 10;
-                                if (finalX < 0) {
-                                    // 如果左側也超出，則貼螢幕左邊
-                                    finalX = 5;
-                                }
+                            if (finalX + getWidth() > screenWidth) {
+                                finalX = screenWidth - getWidth(); // 右邊界對齊
+                            }
+                            if (finalX < 0) {
+                                finalX = 0; // 左邊界對齊
                             }
                             
                             // 垂直方向邊界檢查
-                            if (idealY < 0) {
-                                // 如果上方超出螢幕，移到角色下方
-                                finalY = followingLocation.y + petSize.height + 10;
-                                if (finalY + getHeight() > screenHeight) {
-                                    // 如果下方也超出，則貼螢幕底部
-                                    finalY = screenHeight - getHeight() - 40;
-                                }
-                            } else if (idealY + getHeight() > screenHeight) {
-                                // 如果下方超出螢幕，貼螢幕底部
-                                finalY = screenHeight - getHeight() - 40;
+                            if (finalY < 0) {
+                                finalY = followingLocation.y + petSize.height + 10; // 如果上方空間不足，放到下方
                             }
-                            
-                            // 最終邊界確保
-                            finalX = Math.max(5, Math.min(finalX, screenWidth - getWidth() - 5));
-                            finalY = Math.max(5, Math.min(finalY, screenHeight - getHeight() - 40));
+                            if (finalY + getHeight() > screenHeight) {
+                                finalY = screenHeight - getHeight(); // 底部邊界對齊
+                            }
                             
                             setLocation(finalX, finalY);
                         }
@@ -724,49 +695,27 @@ public class PomodoroApp extends JFrame {
 }
 
 // 現代化對話框形狀的面板類別
-class ModernSpeechBubblePanel extends JPanel {
-    public ModernSpeechBubblePanel() {
+class ModernPomodoroPanel extends JPanel {
+    public ModernPomodoroPanel() {
         setOpaque(false);
     }
     
     @Override
     protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        int width = getWidth();
-        int height = getHeight();
-        
-        // 繪製陰影
+        // 繪製帶陰影的圓角矩形背景
         g2d.setColor(new Color(0, 0, 0, 30));
-        g2d.fillRoundRect(4, 6, width-8, height-12, 25, 25);
+        g2d.fillRoundRect(3, 3, getWidth() - 3, getHeight() - 3, 25, 25);
         
-        // 繪製白色背景 (與 Stopwatch 統一)
-        GradientPaint gp = new GradientPaint(
-            0, 0, Color.WHITE, // 純白色
-            0, height, new Color(0xF8F9FA) // 淺灰白
-        );
-        g2d.setPaint(gp);
-        g2d.fillRoundRect(0, 0, width-4, height-8, 25, 25);
+        g2d.setColor(new Color(0xFAFAF9));
+        g2d.fillRoundRect(0, 0, getWidth() - 3, getHeight() - 3, 25, 25);
         
-        // 繪製對話框尾巴
-        int[] xPoints = {width-70, width-35, width-55};
-        int[] yPoints = {height-8, height-8, height+2};
-        g2d.setPaint(gp);
-        g2d.fillPolygon(xPoints, yPoints, 3);
-        
-        // 繪製邊框 (使用 neutral-300)
-        g2d.setColor(new Color(0xD4D4D8)); // neutral-300
-        g2d.setStroke(new BasicStroke(2));
-        g2d.drawRoundRect(0, 0, width-4, height-8, 25, 25);
-        g2d.drawPolygon(xPoints, yPoints, 3);
-        
-        // 添加一些裝飾性元素 (使用主要色系)
-        g2d.setColor(new Color(242,107,73, 80)); // primary 半透明
-        g2d.fillOval(width-30, 5, 8, 8);
-        g2d.setColor(new Color(254,176,152,80)); // primary-light 半透明
-        g2d.fillOval(width-45, 10, 6, 6);
-        g2d.setColor(new Color(204,85,58, 80)); // primary-dark 半透明
-        g2d.fillOval(width-60, 8, 4, 4);
+        // 繪製邊框
+        g2d.setColor(new Color(0xD4D4D8));
+        g2d.setStroke(new BasicStroke(1.0f));
+        g2d.drawRoundRect(0, 0, getWidth() - 3, getHeight() - 3, 25, 25);
     }
 } 

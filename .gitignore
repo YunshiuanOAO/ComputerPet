@@ -8,6 +8,8 @@ release.properties
 dependency-reduced-pom.xml
 buildnumber.properties
 .mvn/jvm.config
+sessionflow.jar
+sessionflow_db.mv.db
 # Eclipse
 .classpath
 .project
