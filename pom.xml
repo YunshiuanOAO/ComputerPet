@@ -16,6 +16,7 @@
     </properties>
 
     <build>
+        <finalName>ComputerPet</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
