@@ -6,7 +6,6 @@ import java.util.TimerTask;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import pet.DesktopPet;
-import pet.PetWindow;
 
 /**
  * 寵物位置跟隨器
@@ -79,14 +78,11 @@ public class PetPositionTracker {
                 
                 Point currentPetLocation;
                 Dimension petSize;
-                PetWindow petWindow;
                 
                 if (followingPetIndex >= 0) {
                     // 跟隨特定寵物
                     currentPetLocation = desktopPet.getPetLocation(followingPetIndex);
                     petSize = desktopPet.getPetSize(followingPetIndex);
-                    petWindow = desktopPet.petWindows.get(followingPetIndex);
-                    petWindow.lie();
                 } else {
                     // 跟隨石頭（主屋）
                     currentPetLocation = desktopPet.getStoneLocation();
