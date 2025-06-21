@@ -1,11 +1,11 @@
 package pet;
 import javax.swing.*;
+import java.net.URL;
 
 import utils.PathTool;
 import pomodoro.ScreenUsedAlert;
 
 import java.awt.*;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -246,9 +246,9 @@ public class DesktopPet {
         imageLabel.setVerticalAlignment(SwingConstants.CENTER);
         
         try {
-            File imageFile = new File(imagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(imagePath);
+            URL imageUrl = getClass().getResource(imagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image img = icon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                 imageLabel.setIcon(new ImageIcon(img));
             } else {

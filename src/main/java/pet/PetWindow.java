@@ -5,7 +5,7 @@ package pet;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.net.URL;
 import java.util.Random;
 
 import javax.swing.*;
@@ -632,9 +632,9 @@ public class PetWindow {
     
     private void loadStandImage() {
         try {
-            File imageFile = new File(standImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(standImagePath);
+            URL imageUrl = getClass().getResource(standImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                 petLabel.setIcon(new ImageIcon(img));
             } else {
@@ -651,9 +651,9 @@ public class PetWindow {
     
     private void loadWalkImage() {
         try {
-            File imageFile = new File(walkImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(walkImagePath);
+            URL imageUrl = getClass().getResource(walkImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image originalImg = icon.getImage();
                 
                 // 先创建原始大小的图片
@@ -699,9 +699,9 @@ public class PetWindow {
     
     private void loadFallImage() {
         try {
-            File imageFile = new File(fallImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(fallImagePath);
+            URL imageUrl = getClass().getResource(fallImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                 petLabel.setIcon(new ImageIcon(img));
             } else {
@@ -719,9 +719,9 @@ public class PetWindow {
     // 新增：加载坐下图片
     private void loadSitImage() {
         try {
-            File imageFile = new File(sitImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(sitImagePath);
+            URL imageUrl = getClass().getResource(sitImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                 petLabel.setIcon(new ImageIcon(img));
             } else {
@@ -768,9 +768,9 @@ public class PetWindow {
     // 新增：加载躺下图片
     private void loadLieImage() {
         try {
-            File imageFile = new File(lieImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(lieImagePath);
+            URL imageUrl = getClass().getResource(lieImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                 petLabel.setIcon(new ImageIcon(img));
             } else {
@@ -827,9 +827,9 @@ public class PetWindow {
             try {
                 System.out.println("petType=" + petType + "，歡呼圖片路徑=" + cheerImagePath);
                 System.out.println("當前工作目錄: " + System.getProperty("user.dir"));
-                File imageFile = new File(cheerImagePath);
-                if (imageFile.exists()) {
-                    ImageIcon icon = new ImageIcon(cheerImagePath);
+                URL imageUrl = getClass().getResource(cheerImagePath);
+                if (imageUrl != null) {
+                    ImageIcon icon = new ImageIcon(imageUrl);
                     Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                     petLabel.setIcon(new ImageIcon(img));
                 } else {
@@ -856,9 +856,9 @@ public class PetWindow {
             
             // 顯示加油圖片
             try {
-                File imageFile = new File(cheerUpImagePath);
-                if (imageFile.exists()) {
-                    ImageIcon icon = new ImageIcon(cheerUpImagePath);
+                URL imageUrl = getClass().getResource(cheerUpImagePath);
+                if (imageUrl != null) {
+                    ImageIcon icon = new ImageIcon(imageUrl);
                     Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                     petLabel.setIcon(new ImageIcon(img));
                 } else {
@@ -1018,9 +1018,9 @@ public class PetWindow {
             } else if (isCheering) {
                 // 重新載入歡呼圖片
                 try {
-                    File imageFile = new File(cheerImagePath);
-                    if (imageFile.exists()) {
-                        ImageIcon icon = new ImageIcon(cheerImagePath);
+                    URL imageUrl = getClass().getResource(cheerImagePath);
+                    if (imageUrl != null) {
+                        ImageIcon icon = new ImageIcon(imageUrl);
                         Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                         petLabel.setIcon(new ImageIcon(img));
                     }
@@ -1030,9 +1030,9 @@ public class PetWindow {
             } else if (isCheeringUp) {
                 // 重新載入加油圖片
                 try {
-                    File imageFile = new File(cheerUpImagePath);
-                    if (imageFile.exists()) {
-                        ImageIcon icon = new ImageIcon(cheerUpImagePath);
+                    URL imageUrl = getClass().getResource(cheerUpImagePath);
+                    if (imageUrl != null) {
+                        ImageIcon icon = new ImageIcon(imageUrl);
                         Image img = icon.getImage().getScaledInstance(SettingsWindow.globalPetSize, SettingsWindow.globalPetSize, Image.SCALE_SMOOTH);
                         petLabel.setIcon(new ImageIcon(img));
                     }
@@ -1122,9 +1122,9 @@ public class PetWindow {
     private void rotateCatImage() {
         try {
             // 載入貓咪的站立圖片
-            File imageFile = new File(standImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(standImagePath);
+            URL imageUrl = getClass().getResource(standImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image originalImage = icon.getImage();
                 
                 // 創建旋轉後的圖片
@@ -1162,9 +1162,9 @@ public class PetWindow {
     private void rotateDuckImage() {
         try {
             // 載入鴨子的站立圖片
-            File imageFile = new File(standImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(standImagePath);
+            URL imageUrl = getClass().getResource(standImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image originalImage = icon.getImage();
                 
                 // 創建旋轉後的圖片
@@ -1202,9 +1202,9 @@ public class PetWindow {
     private void rotateMouseImage() {
         try {
             // 載入老鼠的站立圖片
-            File imageFile = new File(standImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(standImagePath);
+            URL imageUrl = getClass().getResource(standImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image originalImage = icon.getImage();
                 
                 // 創建旋轉後的圖片
@@ -1242,9 +1242,9 @@ public class PetWindow {
     private void rotateDogImage() {
         try {
             // 載入狗狗的站立圖片
-            File imageFile = new File(standImagePath);
-            if (imageFile.exists()) {
-                ImageIcon icon = new ImageIcon(standImagePath);
+            URL imageUrl = getClass().getResource(standImagePath);
+            if (imageUrl != null) {
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image originalImage = icon.getImage();
                 
                 // 創建旋轉後的圖片
