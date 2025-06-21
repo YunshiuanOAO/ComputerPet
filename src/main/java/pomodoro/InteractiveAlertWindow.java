@@ -45,7 +45,7 @@ public class InteractiveAlertWindow extends JWindow {
                                 "• 起身活動一下<br>" +
                                 "• 看看遠方放鬆眼睛<br>" +
                                 "• 喝點水休息片刻<br><br>" +
-                                "點擊確認重新開始計時" +
+                                "點擊OK重新開始計時" +
                                 "</div></html>", JLabel.CENTER);
         messageLabel.setFont(new Font("微軟正黑體", Font.PLAIN, 16));
         messageLabel.setForeground(new Color(0x374151)); // TEXT_COLOR
@@ -56,7 +56,7 @@ public class InteractiveAlertWindow extends JWindow {
         buttonPanel.setOpaque(false);
         
         // 確認按鈕 (使用 Stopwatch 配色)
-        JButton confirmButton = createStyledButton("確認", new Color(0xF26B49)); // PRIMARY_COLOR
+        JButton confirmButton = createStyledButton("OK", new Color(0xF26B49)); // PRIMARY_COLOR
         confirmButton.setPreferredSize(new Dimension(160, 45));
         confirmButton.setFont(new Font("微軟正黑體", Font.BOLD, 16));
         confirmButton.addActionListener(e -> {

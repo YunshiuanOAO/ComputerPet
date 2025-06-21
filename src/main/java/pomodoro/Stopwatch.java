@@ -151,14 +151,16 @@ public class Stopwatch extends JFrame {
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
         buttonPanel.setAlignmentY(Component.CENTER_ALIGNMENT);
         
-        startButton = createModernButton("▶", 50, 50, 20);
+        startButton = createModernButton(utils.FontUtils.getPlaySymbol(), 48, 48, 18);
         startButton.setBackground(PRIMARY_COLOR);
         startButton.setForeground(Color.WHITE);
+        startButton.setFont(utils.FontUtils.getUnicodeFont(Font.BOLD, 18)); // 使用跨平台字體
         startButton.addActionListener(e -> toggleTimer());
         
-        resetButton = createModernButton("⟳", 50, 50, 20);
+        resetButton = createModernButton(utils.FontUtils.getResetSymbol(), 48, 48, 18);
         resetButton.setBackground(PRIMARY_COLOR);
         resetButton.setForeground(Color.WHITE);
+        resetButton.setFont(utils.FontUtils.getUnicodeFont(Font.BOLD, 18)); // 使用跨平台字體
         resetButton.addActionListener(e -> resetTimer());
         
         addButtonHoverEffect(startButton, PRIMARY_COLOR, PRIMARY_LIGHT);
@@ -179,43 +181,68 @@ public class Stopwatch extends JFrame {
         JButton button = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
+                Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // 陰影
+                g2.setColor(new Color(0,0,0,40));
+                g2.fillRoundRect(3, 4, getWidth()-6, getHeight()-6, 20, 20);
+                // 主體
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth()-3, getHeight()-3, 20, 20);
                 
-                if (getModel().isPressed()) {
-                    g2.setColor(getBackground().darker());
-                } else if (getModel().isRollover()) {
-                    // 懸停效果由 addButtonHoverEffect 處理
-                    g2.setColor(getBackground());
-                } else {
-                    g2.setColor(getBackground());
-                }
-                
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
-                
-                // 繪製文字
-                FontMetrics fm = g2.getFontMetrics();
-                Rectangle textRect = new Rectangle(
-                    (getWidth() - fm.stringWidth(getText())) / 2,
-                    (getHeight() - fm.getHeight()) / 2 + fm.getAscent(),
-                    fm.stringWidth(getText()),
-                    fm.getHeight()
-                );
-                
+                // 繪製圖案
+                String currentText = getText();
                 g2.setColor(getForeground());
-                g2.setFont(getFont());
-                g2.drawString(getText(), textRect.x, textRect.y);
+                
+                if (utils.FontUtils.getPlaySymbol().equals(currentText)) {
+                    // 自繪播放三角形
+                    int centerX = getWidth() / 2;
+                    int centerY = getHeight() / 2;
+                    int triangleSize = iconSize / 2;
+                    int[] xPoints = {centerX - triangleSize/2, centerX - triangleSize/2, centerX + triangleSize/2};
+                    int[] yPoints = {centerY - triangleSize/2, centerY + triangleSize/2, centerY};
+                    g2.fillPolygon(xPoints, yPoints, 3);
+                } else if (utils.FontUtils.getPauseSymbol().equals(currentText)) {
+                    // 自繪暫停矩形
+                    int centerX = getWidth() / 2;
+                    int centerY = getHeight() / 2;
+                    int rectSize = iconSize / 2;
+                    int rectWidth = rectSize / 3;
+                    int rectHeight = rectSize;
+                    int gap = rectSize / 4;
+                    g2.fillRect(centerX - gap - rectWidth, centerY - rectHeight/2, rectWidth, rectHeight);
+                    g2.fillRect(centerX + gap, centerY - rectHeight/2, rectWidth, rectHeight);
+                } else if (utils.FontUtils.getResetSymbol().equals(currentText)) {
+                    // 自繪重置圓形箭頭
+                    int centerX = getWidth() / 2;
+                    int centerY = getHeight() / 2;
+                    utils.FontUtils.drawResetIcon(g2, centerX, centerY, iconSize, getForeground());
+                } else if (currentText != null && !currentText.isEmpty()) {
+                    // 其他按鈕使用文字
+                    g2.setFont(new Font("Arial", Font.BOLD, iconSize));
+                    FontMetrics fm = g2.getFontMetrics();
+                    int strWidth = fm.stringWidth(currentText);
+                    int strHeight = fm.getAscent();
+                    int x = (getWidth() - strWidth) / 2;
+                    int y = (getHeight() + strHeight) / 2 - 4;
+                    g2.drawString(currentText, x, y);
+                }
+                g2.dispose();
             }
         };
         
         button.setPreferredSize(new Dimension(width, height));
-        button.setMinimumSize(new Dimension(width, height));
         button.setMaximumSize(new Dimension(width, height));
-        button.setFont(new Font("SF Pro Display", Font.BOLD, iconSize));
+        button.setMinimumSize(new Dimension(width, height));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setOpaque(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setAlignmentY(Component.CENTER_ALIGNMENT);
+        button.setFont(new Font("Arial", Font.BOLD, iconSize));
+        button.setForeground(Color.WHITE);
         
         return button;
     }
@@ -254,7 +281,7 @@ public class Stopwatch extends JFrame {
     
     private void startTimer() {
         isRunning = true;
-        startButton.setText("⏸");
+        startButton.setText(utils.FontUtils.getPauseSymbol());
         startButton.setBackground(PRIMARY_COLOR);
         
         startTime = System.currentTimeMillis() - elapsedTime;
@@ -277,7 +304,7 @@ public class Stopwatch extends JFrame {
             timer = null;
         }
         isRunning = false;
-        startButton.setText("▶");
+        startButton.setText(utils.FontUtils.getPlaySymbol());
         startButton.setBackground(PRIMARY_COLOR);
     }
     
