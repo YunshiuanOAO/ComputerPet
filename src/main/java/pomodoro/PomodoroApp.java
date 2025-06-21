@@ -245,13 +245,15 @@ public class PomodoroApp extends JFrame {
         buttonPanel.setOpaque(false);
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
         buttonPanel.setAlignmentY(Component.CENTER_ALIGNMENT);
-        startButton = createModernButton("▶", 44, 44, 20);
+        startButton = createModernButton(utils.FontUtils.getPlaySymbol(), 48, 48, 18);
         startButton.setBackground(PRIMARY_COLOR);
         startButton.setForeground(Color.WHITE);
+        startButton.setFont(utils.FontUtils.getUnicodeFont(Font.BOLD, 18)); // 使用跨平台字體
         startButton.addActionListener(e -> toggleTimer());
-        resetButton = createModernButton("⟳", 44, 44, 20);
+        resetButton = createModernButton(utils.FontUtils.getResetSymbol(), 48, 48, 18);
         resetButton.setBackground(SECONDARY_COLOR);
         resetButton.setForeground(Color.WHITE);
+        resetButton.setFont(utils.FontUtils.getUnicodeFont(Font.BOLD, 20)); // 使用跨平台字體
         resetButton.addActionListener(e -> resetTimer());
         addButtonHoverEffect(startButton, PRIMARY_COLOR);
         addButtonHoverEffect(resetButton, SECONDARY_COLOR);
@@ -301,8 +303,13 @@ public class PomodoroApp extends JFrame {
                     int gap = rectSize / 4;
                     g2.fillRect(centerX - gap - rectWidth, centerY - rectHeight/2, rectWidth, rectHeight);
                     g2.fillRect(centerX + gap, centerY - rectHeight/2, rectWidth, rectHeight);
+                } else if (utils.FontUtils.getResetSymbol().equals(currentText)) {
+                    // 自繪重置圓形箭頭
+                    int centerX = getWidth() / 2;
+                    int centerY = getHeight() / 2;
+                    utils.FontUtils.drawResetIcon(g2, centerX, centerY, iconSize, getForeground());
                 } else if (currentText != null && !currentText.isEmpty()) {
-                    // 其他按鈕使用文字（如重置按鈕）
+                    // 其他按鈕使用文字
                     g2.setFont(new Font("Arial", Font.BOLD, iconSize));
                     FontMetrics fm = g2.getFontMetrics();
                     int strWidth = fm.stringWidth(currentText);
@@ -363,11 +370,11 @@ public class PomodoroApp extends JFrame {
     private void toggleTimer() {
         if (isRunning) {
             stopTimer();
-            startButton.setText("▶");
+            startButton.setText(utils.FontUtils.getPlaySymbol());
             startButton.setBackground(PRIMARY_COLOR);
         } else {
             startTimer();
-            startButton.setText("⏸");
+            startButton.setText(utils.FontUtils.getPauseSymbol());
             startButton.setBackground(WARNING_COLOR);
         }
         isRunning = !isRunning;
@@ -387,7 +394,7 @@ public class PomodoroApp extends JFrame {
                 } else {
                     stopTimer();
                     isRunning = false;
-                    startButton.setText("▶");
+                    startButton.setText(utils.FontUtils.getPlaySymbol());
                     startButton.setBackground(PRIMARY_COLOR);
                     setVisible(true);
                     toFront();
@@ -443,7 +450,7 @@ public class PomodoroApp extends JFrame {
         messageLabel.setFont(new Font("SF Pro Display", Font.PLAIN, 14));
         messageLabel.setForeground(TEXT_COLOR);
         
-        JButton okButton = createModernButton("確定", 80, 35, 20);
+        JButton okButton = createModernButton("OK", 80, 35, 20);
         okButton.setBackground(PRIMARY_COLOR);
         okButton.setForeground(Color.WHITE);
         okButton.addActionListener(e -> dialog.dispose());
@@ -483,7 +490,7 @@ public class PomodoroApp extends JFrame {
         SwingUtilities.invokeLater(() -> {
             startTimer();
             isRunning = true;
-            startButton.setText("⏸");
+            startButton.setText(utils.FontUtils.getPauseSymbol());
             startButton.setBackground(WARNING_COLOR);
         });
     }
@@ -498,7 +505,7 @@ public class PomodoroApp extends JFrame {
     private void resetTimer() {
         stopTimer();
         isRunning = false;
-        startButton.setText("▶");
+        startButton.setText(utils.FontUtils.getPlaySymbol());
         startButton.setBackground(PRIMARY_COLOR);
         
         int selectedMode = modeSelector.getSelectedIndex();
