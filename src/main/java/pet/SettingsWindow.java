@@ -4,7 +4,7 @@ package pet;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
+import java.net.URL;
 import java.util.Random;
 
 import javax.swing.*;
@@ -212,9 +212,9 @@ public class SettingsWindow {
         if (currentStoneFrame != null) {
             try {
                 String imagePath = PathTool.patchPicturePath("picture/home.png");
-                File imageFile = new File(imagePath);
-                if (imageFile.exists()) {
-                    ImageIcon icon = new ImageIcon(imagePath);
+                URL imageUrl = getClass().getResource(imagePath);
+                if (imageUrl != null) {
+                    ImageIcon icon = new ImageIcon(imageUrl);
                     Image img = icon.getImage();
                     JPanel panel = (JPanel) currentStoneFrame.getContentPane();
                     if (panel.getComponentCount() > 0) {
@@ -400,8 +400,8 @@ public class SettingsWindow {
                 currentStoneFrame = null;
             }
             String imagePath = PathTool.patchPicturePath("picture/home.png");
-            File imageFile = new File(imagePath);
-            if (imageFile.exists()) {
+            URL imageUrl = getClass().getResource(imagePath);
+            if (imageUrl != null) {
                 JFrame imageFrame = new JFrame("Home Image");
                 imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                 currentStoneFrame = imageFrame;
