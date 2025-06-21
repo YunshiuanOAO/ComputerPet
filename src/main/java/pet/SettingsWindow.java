@@ -414,7 +414,7 @@ public class SettingsWindow {
                 imageFrame.setUndecorated(true);
                 imageFrame.setBackground(new Color(0, 0, 0, 0));
                 imageFrame.setAlwaysOnTop(true);
-                ImageIcon icon = new ImageIcon(imagePath);
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image img = icon.getImage();
                 ScaledImageLabel imageLabel = new ScaledImageLabel(img);
                 imageLabel.setPreferredSize(new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize));
