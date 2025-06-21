@@ -621,6 +621,17 @@ public class SettingsWindow {
         // TODO: 代辦事項功能
         openStoneMenuFunctionWindow(() -> {
             TaskManagerApp taskManagerApp = new TaskManagerApp();
+            // 將TaskManagerApp添加到DesktopPet的追蹤列表
+            this.desktopPet.addTaskManagerApp(taskManagerApp);
+            
+            // 添加視窗關閉監聽器，在關閉時從追蹤列表移除
+            taskManagerApp.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent e) {
+                    SettingsWindow.this.desktopPet.removeTaskManagerApp(taskManagerApp);
+                }
+            });
+            
             return taskManagerApp;
         });
     }
