@@ -335,7 +335,7 @@ public class SessionFlowManager {
         }
     }
     
-    public void terminate() {
+    static void terminate() {
         if (sessionflowProcess != null && sessionflowProcess.isAlive()) {
             System.out.println("正在終止SessionFlow進程...");
             
@@ -371,7 +371,7 @@ public class SessionFlowManager {
         }
     }
     
-    private void killSessionFlowProcessByName() throws Exception {
+    private static void killSessionFlowProcessByName() throws Exception {
         String os = System.getProperty("os.name").toLowerCase();
         ProcessBuilder pb;
         

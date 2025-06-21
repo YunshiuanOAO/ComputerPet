@@ -131,11 +131,10 @@ public class TaskManagerApp extends JFrame implements
             positionTracker.stopTracking();
         }
         
-        // 從 DesktopPet 的追蹤列表中移除自己
-        if (desktopPet != null) {
-            desktopPet.removeTaskManagerApp(this);
-        }
-        
         super.dispose();
+    }
+
+    public static void terminateService() {
+        SessionFlowManager.terminate();
     }
 }
