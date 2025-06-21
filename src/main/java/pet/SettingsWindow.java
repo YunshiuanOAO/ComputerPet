@@ -4,7 +4,7 @@ package pet;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
+import java.net.URL;
 import java.util.Random;
 
 import javax.swing.*;
@@ -12,6 +12,7 @@ import javax.swing.*;
 import pomodoro.CountdownTimer;
 import pomodoro.PomodoroApp;
 import pomodoro.Stopwatch;
+import taskmanager.TaskManagerApp;
 import utils.PathTool;
 
 
@@ -211,9 +212,9 @@ public class SettingsWindow {
         if (currentStoneFrame != null) {
             try {
                 String imagePath = PathTool.patchPicturePath("picture/home.png");
-                File imageFile = new File(imagePath);
-                if (imageFile.exists()) {
-                    ImageIcon icon = new ImageIcon(imagePath);
+                URL imageUrl = getClass().getResource(imagePath);
+                if (imageUrl != null) {
+                    ImageIcon icon = new ImageIcon(imageUrl);
                     Image img = icon.getImage();
                     JPanel panel = (JPanel) currentStoneFrame.getContentPane();
                     if (panel.getComponentCount() > 0) {
@@ -399,8 +400,8 @@ public class SettingsWindow {
                 currentStoneFrame = null;
             }
             String imagePath = PathTool.patchPicturePath("picture/home.png");
-            File imageFile = new File(imagePath);
-            if (imageFile.exists()) {
+            URL imageUrl = getClass().getResource(imagePath);
+            if (imageUrl != null) {
                 JFrame imageFrame = new JFrame("Home Image");
                 imageFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                 currentStoneFrame = imageFrame;
@@ -413,7 +414,7 @@ public class SettingsWindow {
                 imageFrame.setUndecorated(true);
                 imageFrame.setBackground(new Color(0, 0, 0, 0));
                 imageFrame.setAlwaysOnTop(true);
-                ImageIcon icon = new ImageIcon(imagePath);
+                ImageIcon icon = new ImageIcon(imageUrl);
                 Image img = icon.getImage();
                 ScaledImageLabel imageLabel = new ScaledImageLabel(img);
                 imageLabel.setPreferredSize(new Dimension(SettingsWindow.globalStoneSize, SettingsWindow.globalStoneSize));
@@ -617,10 +618,11 @@ public class SettingsWindow {
     
     // 新增：代辦事項功能
     private void showTodoList() {
-        JOptionPane.showMessageDialog(settingsFrame, 
-            "代辦事項功能\n\n管理您的任務清單，\n追蹤待完成的工作項目。\n\n功能即將推出！", 
-            "代辦事項", 
-            JOptionPane.INFORMATION_MESSAGE);
+        // TODO: 代辦事項功能
+        openStoneMenuFunctionWindow(() -> {
+            TaskManagerApp taskManagerApp = new TaskManagerApp();
+            return taskManagerApp;
+        });
     }
     
     // 新增：倒數計時功能
