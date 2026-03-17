@@ -23,7 +23,7 @@ public class SessionFlowManager {
     
     private static final int PORT = 53551;
     private static final String JAR_FILE_NAME = "sessionflow.jar";
-    private static final String DOWNLOAD_SCRIPT_URL = "https://raw.githubusercontent.com/l-zch/sessionflow/main/scripts/download-latest-release.sh";
+    private static final String DOWNLOAD_SCRIPT_URL = "https://raw.githubusercontent.com/l1n-zh/sessionflow/main/scripts/download-latest-release.sh";
     
     private static Process sessionflowProcess;
     private StatusListener statusListener;
@@ -171,7 +171,7 @@ public class SessionFlowManager {
         }
         
         String[] downloadUrls = {
-            "https://github.com/l-zch/sessionflow/releases/latest/download/sessionflow.jar",
+            "https://github.com/l1n-zh/sessionflow/releases/latest/download/sessionflow.jar",
         };
         
         Exception lastException = null;
